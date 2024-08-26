@@ -20,7 +20,9 @@ mongoose
 
 // Routes
 const userRoutes = require('./src/routes/users')
-app.use('/api/users', userRoutes)
+const bookRoutes =require('./src/routes/booking')
+app.use('/', userRoutes)
+app.use('/',bookRoutes)
 app.get('/', (req, res) => {
   res.send('Hello World');
 });

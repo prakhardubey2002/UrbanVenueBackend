@@ -44,7 +44,7 @@ const BookingSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Confirmed', 'Pending', 'Canceled']
+        enum: ['Upcoming', 'Paid', 'Canceled']
     },
     total: {
         type: Number, // Changed to Number to represent currency as a number
