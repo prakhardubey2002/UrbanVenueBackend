@@ -19,7 +19,7 @@ mongoose
   .catch((err) => console.log(err))
 
 // Routes
-const userRoutes = require('./routes/users')
+const userRoutes = require('./src/routes/users')
 app.use('/api/users', userRoutes)
 app.get('/', (req, res) => {
   res.send('Hello World');
