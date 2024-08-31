@@ -1,29 +1,27 @@
+// models/Event.js
 const mongoose = require('mongoose')
 
 const EventSchema = new mongoose.Schema({
-  title: String,
-  start: Date,
-  end: Date,
+  title: { type: String, required: true },
+  start: { type: Date, required: true },
+  end: { type: Date, required: true },
+})
+
+const FarmSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  events: [EventSchema],
 })
 
 const PlaceSchema = new mongoose.Schema({
-  name: String,
-  farms: {
-    type: Map,
-    of: [EventSchema],
-  },
+  name: { type: String, required: true },
+  farms: [FarmSchema],
 })
 
 const StateSchema = new mongoose.Schema({
-  name: String,
-  places: {
-    type: Map,
-    of: PlaceSchema,
-  },
+  name: { type: String, required: true },
+  places: [PlaceSchema],
 })
 
-const EventModel = mongoose.model('Event', EventSchema)
-const PlaceModel = mongoose.model('Place', PlaceSchema)
-const StateModel = mongoose.model('State', StateSchema)
+const Calender = mongoose.model('Calender', StateSchema)
 
-module.exports = { EventModel, PlaceModel, StateModel }
+module.exports = Calender
