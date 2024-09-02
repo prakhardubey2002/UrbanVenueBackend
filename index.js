@@ -22,8 +22,11 @@ mongoose
 // Routes
 const userRoutes = require('./src/routes/users')
 const bookRoutes =require('./src/routes/booking')
+const calenderRoutes = require('./src/routes/Calender')
 app.use('/', userRoutes)
 app.use('/',bookRoutes)
+app.use('/api/calender',calenderRoutes)
+
 app.get('/', (req, res) => {
   res.send('Hello World');
 });
