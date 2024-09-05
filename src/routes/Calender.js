@@ -108,56 +108,73 @@ router.get('/:stateName/:placeName/:farmName/events', async (req, res) => {
 
 // Get farms with available events on a specific date
 router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
-  const { stateName, placeName, date } = req.params;
+  const { stateName, placeName, date } = req.params
 
   try {
-    const selectedDate = new Date(date);
+    const selectedDate = new Date(date)
     if (isNaN(selectedDate.getTime())) {
-      return res.status(400).json({ message: 'Invalid date format' });
+      return res.status(400).json({ message: 'Invalid date format' })
     }
 
     // Helper function to strip time and only compare dates
-    const getDateOnly = (date) => new Date(date.toISOString().split('T')[0]);
+    const getDateOnly = (date) => new Date(date.toISOString().split('T')[0])
 
-    const state = await Calender.findOne({ name: stateName });
+    const state = await Calender.findOne({ name: stateName })
     if (!state) {
-      return res.status(404).json({ message: 'State not found' });
+      return res.status(404).json({ message: 'State not found' })
     }
 
-    const place = state.places.find((place) => place.name === placeName);
+    const place = state.places.find((place) => place.name === placeName)
     if (!place) {
-      return res.status(404).json({ message: 'Place not found' });
+      return res.status(404).json({ message: 'Place not found' })
     }
 
     // Filter farms to include only those that have no events on the specified date
     const farmsWithNoEvents = place.farms.filter((farm) => {
       // Check if there are no events on the selected date
       return !farm.events.some((event) => {
-        const eventStartDate = getDateOnly(new Date(event.start));
-        const eventEndDate = getDateOnly(new Date(event.end));
-        const comparisonDate = getDateOnly(selectedDate);
+        const eventStartDate = getDateOnly(new Date(event.start))
+        const eventEndDate = getDateOnly(new Date(event.end))
+        const comparisonDate = getDateOnly(selectedDate)
 
-        return comparisonDate >= eventStartDate && comparisonDate <= eventEndDate;
-      });
-    });
+        return (
+          comparisonDate >= eventStartDate && comparisonDate <= eventEndDate
+        )
+      })
+    })
 
     // Map the farms to include their name and all events
     const result = farmsWithNoEvents.map((farm) => ({
       name: farm.name,
       events: farm.events, // Include all events
-    }));
+    }))
 
-    res.json(result);
+    res.json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-});
+})
 
+router.get('/:state/:place/:property/address', async (req, res) => {
+  try {
+    const { state, place, property } = req.params
+    console.log(`Received request for state: ${req.params.state}, place: ${req.params.place}, property: ${req.params.property}`);
+    const stateData = await Calender.findOne(
+      { name: state, 'places.name': place, 'places.farms.name': property },
+      { 'places.$': 1 }
+    )
+    if (!stateData || stateData.places.length === 0)
+      return res.status(404).json({ message: 'State or place not found' })
 
+    const farm = stateData.places[0].farms.find(
+      (farm) => farm.name === property
+    )
+    if (!farm) return res.status(404).json({ message: 'Farm not found' })
 
-
-
-
-
+    res.json(farm.address)
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+})
 // Export the router
 module.exports = router
