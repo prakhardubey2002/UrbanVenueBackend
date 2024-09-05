@@ -2,6 +2,7 @@
 const mongoose = require('mongoose')
 
 const invoiceSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
   bookingId: { type: String, required: true },
   guestName: { type: String, required: true },
   phoneNumber: { type: String, required: true },
