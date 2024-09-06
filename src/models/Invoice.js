@@ -18,10 +18,12 @@ const invoiceSchema = new mongoose.Schema({
   advance: { type: Number, required: true },
   advanceCollectedBy: {
     type: String,
-    default: 'owner',
   },
-  showAdvanceDetails: { type: String,  default: 'no' },
-  advanceMode: { type: String,  default: 'cash' },
+  pendingCollectedBy: {
+    type: String,
+  },
+  showAdvanceDetails: { type: String, default: 'no' },
+  advanceMode: { type: String, default: 'cash' },
   balancePayment: { type: Number, required: true },
   securityAmount: { type: Number },
   urbanvenuecommission: { type: Number },
@@ -33,6 +35,11 @@ const invoiceSchema = new mongoose.Schema({
   citySuburb: { type: String },
   zipCode: { type: String },
   termsConditions: { type: String },
+  status: {
+    type: String,
+    enum: ['Canceled', 'Paid', 'Upcoming'],
+    required: true,
+  },
 })
 
 const Invoice = mongoose.model('Invoice', invoiceSchema)
