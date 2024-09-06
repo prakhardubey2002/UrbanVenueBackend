@@ -1,8 +1,6 @@
-// models/Invoice.js
 const mongoose = require('mongoose')
 
 const invoiceSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
   bookingId: { type: String, required: true },
   guestName: { type: String, required: true },
   phoneNumber: { type: String, required: true },
@@ -16,24 +14,26 @@ const invoiceSchema = new mongoose.Schema({
   hostNumber: { type: String, required: true },
   totalBooking: { type: Number, required: true },
   farmTref: { type: Number, required: true },
-  otherServices: { type: Number, required: true },
+  otherServices: { type: Number },
   advance: { type: Number, required: true },
-  advanceCollectedBy: { type: String, required: true },
-  showAdvanceDetails: { type: String, required: true },
-  advanceMode: { type: String, required: true },
+  advanceCollectedBy: {
+    type: String,
+    default: 'owner',
+  },
+  showAdvanceDetails: { type: String,  default: 'no' },
+  advanceMode: { type: String,  default: 'cash' },
   balancePayment: { type: Number, required: true },
-  securityAmount: { type: Number, required: true },
-  urbanvenuecommission: { type: Number, required: true },
-  termsConditions: { type: String },
+  securityAmount: { type: Number },
+  urbanvenuecommission: { type: Number },
   venue: { type: String, required: true },
-  addressLine1: { type: String, required: true },
+  addressLine1: { type: String },
   addressLine2: { type: String },
-  country: { type: String, required: true },
-  city: { type: String, required: true },
+  country: { type: String },
+  city: { type: String },
   citySuburb: { type: String },
-  zipCode: { type: String, required: true },
+  zipCode: { type: String },
+  termsConditions: { type: String },
 })
 
 const Invoice = mongoose.model('Invoice', invoiceSchema)
-
 module.exports = Invoice
