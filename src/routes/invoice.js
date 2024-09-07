@@ -61,5 +61,22 @@ router.delete('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.get('/guests', async (req, res) => {
+  try {
+    // Fetch only the 'guestName' field from the invoices collection
+    const guests = await Invoice.find({}, 'guestName');
 
+    // Use a Set to ensure unique guest names
+    const uniqueGuestNames = new Set(guests.map(guest => guest.guestName));
+
+    // Convert Set back to Array
+    const guestNamesArray = Array.from(uniqueGuestNames);
+
+    // Send the unique guest names as a response
+    res.json(guestNamesArray);
+  } catch (err) {
+    console.error('Error fetching guest names:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
 module.exports = router;

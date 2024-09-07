@@ -8,11 +8,11 @@ const EventSchema = new mongoose.Schema({
 
 const AddressSchema = new mongoose.Schema({
   addressLine1: { type: String, required: true },
-  addressLine2: { type: String }, // Optional
+  addressLine2: { type: String }, 
   country: { type: String, required: true },
-  city: { type: String, required: true },
-  suburb: { type: String }, // Optional for suburb
-  zipCode: { type: String, required: true }, // Zip/Post Code
+  state: { type: String, required: true },
+  suburb: { type: String }, 
+  zipCode: { type: String, required: true }, 
 });
 
 const FarmSchema = new mongoose.Schema({

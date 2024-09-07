@@ -31,7 +31,7 @@ const invoiceSchema = new mongoose.Schema({
   addressLine1: { type: String },
   addressLine2: { type: String },
   country: { type: String },
-  city: { type: String },
+  state: { type: String },
   citySuburb: { type: String },
   zipCode: { type: String },
   termsConditions: { type: String },
