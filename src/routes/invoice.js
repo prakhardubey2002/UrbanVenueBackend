@@ -63,10 +63,8 @@ router.delete('/invoices/:id', async (req, res) => {
 });
 router.get('/guests', async (req, res) => {
   try {
-    // Fetch only the 'guestName' field from the invoices collection
     const guests = await Invoice.find({}, 'guestName');
 
-    // Use a Set to ensure unique guest names
     const uniqueGuestNames = new Set(guests.map(guest => guest.guestName));
 
     // Convert Set back to Array
@@ -79,4 +77,49 @@ router.get('/guests', async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+// Route to get all unique property (venue) names from invoices
+router.get('/venues', async (req, res) => {
+  try {
+   
+    const propertyNames = await Invoice.distinct('venue')
+
+    res.status(200).json(propertyNames)
+  } catch (error) {
+    console.error('Error fetching property names:', error)
+    res.status(500).json({ error: 'Failed to fetch property names' })
+  }
+})
+// Route to get all unique owner (hostOwnerName) names from invoices
+router.get('/owners', async (req, res) => {
+  try {
+  
+    const ownerNames = await Invoice.distinct('hostOwnerName')
+
+    res.status(200).json(ownerNames)
+  } catch (error) {
+    console.error('Error fetching owner names:', error)
+    res.status(500).json({ error: 'Failed to fetch owner names' })
+  }
+})
+// Route to search invoices by status
+router.get('/search', async (req, res) => {
+  try {
+    // Get the 'status' query parameter from the request
+    const { status } = req.query
+
+    // Check if the status is provided and valid
+    if (!status || !['Canceled', 'Paid', 'Upcoming'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid or missing status' })
+    }
+
+    // Find invoices that match the provided status
+    const invoices = await Invoice.find({ status })
+
+    // Send the invoices as a response
+    res.status(200).json(invoices)
+  } catch (error) {
+    console.error('Error searching invoices by status:', error)
+    res.status(500).json({ error: 'Failed to search invoices by status' })
+  }
+})
 module.exports = router;
