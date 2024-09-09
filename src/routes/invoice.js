@@ -144,78 +144,81 @@ router.get('/search', async (req, res) => {
       selectedStatus,
       startDate,
       endDate,
-    } = req.query
+      selectedCategory // New category filter
+    } = req.query;
 
-    let filter = {}
-    let missingParams = []
+    let filter = {};
+    let missingParams = [];
 
     // Build filter object dynamically based on provided query parameters
     if (selectedGuest && selectedGuest.trim()) {
-      filter.guestName = selectedGuest.trim()
+      filter.guestName = selectedGuest.trim();
     }
 
     if (selectedOwner && selectedOwner.trim()) {
-      filter.hostOwnerName = selectedOwner.trim()
+      filter.hostOwnerName = selectedOwner.trim();
     }
 
     if (selectedProperty && selectedProperty.trim()) {
-      filter.venue = selectedProperty.trim()
+      filter.venue = selectedProperty.trim();
     }
 
     if (selectedPhoneNumber && selectedPhoneNumber.trim()) {
-      filter.phoneNumber = selectedPhoneNumber.trim()
+      filter.phoneNumber = selectedPhoneNumber.trim();
     }
 
     if (selectedStatus && selectedStatus.trim()) {
-      filter.status = selectedStatus.trim()
+      filter.status = selectedStatus.trim();
+    }
+
+    // Category filtering
+    if (selectedCategory && selectedCategory.trim()) {
+      filter.occasion = selectedCategory.trim();
     }
 
     // Date filtering (inclusive of the date, ignores time)
     if (startDate && endDate) {
-      const start = new Date(startDate)
-      start.setUTCHours(0, 0, 0, 0) // Set time to midnight to ignore the time component
+      const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0); // Set time to midnight to ignore the time component
 
-      const end = new Date(endDate)
-      end.setUTCHours(23, 59, 59, 999) // Set time to end of day to ensure inclusivity
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999); // Set time to end of day to ensure inclusivity
 
       // Check if either checkInDate or checkOutDate falls within the range
       filter.$or = [
-        {
-          checkInDate: { $gte: start, $lte: end } // Check if the checkInDate is within the range
-        },
-        {
-          checkOutDate: { $gte: start, $lte: end } // Check if the checkOutDate is within the range
-        },
+        { checkInDate: { $gte: start, $lte: end } }, // Check if the checkInDate is within the range
+        { checkOutDate: { $gte: start, $lte: end } }, // Check if the checkOutDate is within the range
         {
           checkInDate: { $lte: end }, // Check if the checkInDate is before the endDate
-          checkOutDate: { $gte: start } // Check if the checkOutDate is after the startDate
-        }
-      ]
+          checkOutDate: { $gte: start }, // Check if the checkOutDate is after the startDate
+        },
+      ];
     } else {
-      missingParams.push('Start Date and End Date')
+      missingParams.push('Start Date and End Date');
     }
 
     // Log missing parameters
     if (missingParams.length > 0) {
-      console.log(`Missing Parameters: ${missingParams.join(', ')}`)
+      console.log(`Missing Parameters: ${missingParams.join(', ')}`);
     }
 
     // Find invoices based on the constructed filter object
-    const invoices = await Invoice.find(filter)
+    const invoices = await Invoice.find(filter);
 
     // Return the filtered invoices
     res.status(200).json({
       success: true,
       data: invoices,
-    })
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-    })
+    });
   }
-})
+});
+
 
 
 
