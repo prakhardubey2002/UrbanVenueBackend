@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
-
+const { v4: uuidv4 } = require('uuid');
 const EventSchema = new mongoose.Schema({
+  _id: { type: String, default: uuidv4 },
   title: { type: String, required: true },
   start: { type: Date, required: true },
   end: { type: Date, required: true },

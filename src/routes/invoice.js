@@ -1,13 +1,120 @@
 const express = require('express')
 const router = express.Router()
 const Invoice = require('../models/Invoice')
-
+const Calender = require('../models/Calender')
 // Create a new invoice
+
+// POST route to create an invoice and add the event to the farm
 router.post('/invoices', async (req, res) => {
   try {
-    const invoice = new Invoice(req.body)
+    const {
+      bookingId,
+      guestName,
+      phoneNumber,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      maxPeople,
+      occasion,
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      farmTref,
+      otherServices,
+      advance,
+      advanceCollectedBy,
+      advanceMode,
+      balancePayment,
+      securityAmount,
+      urbanvenuecommission,
+      venue,
+      addressLine1,
+      addressLine2,
+      country,
+      citySuburb,
+      state,
+      zipCode,
+      showAdvanceDetails,
+      status,
+      pendingCollectedBy,
+    } = req.body
+
+    // Construct the event object based on the booking information
+    const event = {
+      title: occasion,
+      start: `${checkInDate}T${checkInTime}`,
+      end: `${checkOutDate}T${checkOutTime}`,
+      _id: bookingId, // Add bookingId to the event
+    }
+
+    // Save the invoice
+    const invoiceData = {
+      bookingId,
+      guestName,
+      phoneNumber,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      maxPeople,
+      occasion,
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      farmTref,
+      otherServices,
+      advance,
+      advanceCollectedBy,
+      advanceMode,
+      balancePayment,
+      securityAmount,
+      urbanvenuecommission,
+      venue,
+      addressLine1,
+      addressLine2,
+      country,
+      citySuburb,
+      state,
+      zipCode,
+      showAdvanceDetails,
+      status,
+      pendingCollectedBy,
+    }
+
+    // Save the invoice first
+    const invoice = new Invoice(invoiceData)
     const savedInvoice = await invoice.save()
-    res.status(201).json(savedInvoice)
+
+    // Now add the event to the specified farm in the calendar
+    const updatedCalendar = await Calender.findOneAndUpdate(
+      {
+        name: state,
+        'places.name': citySuburb,
+        'places.farms.name': venue,
+      },
+      {
+        $push: { 'places.$.farms.$[farm].events': event },
+      },
+      {
+        arrayFilters: [{ 'farm.name': venue }],
+        new: true,
+      }
+    )
+
+    if (!updatedCalendar) {
+      // Rollback invoice if the event creation fails
+      await Invoice.findByIdAndDelete(savedInvoice._id)
+      return res
+        .status(404)
+        .json({ error: 'Farm not found, invoice not saved' })
+    }
+
+    // Return the saved invoice and success message
+    res.status(201).json({
+      message: 'Invoice and event created successfully',
+      invoice: savedInvoice,
+    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -35,23 +142,113 @@ router.get('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+function createISODateTime(date, time) {
+  // Convert date to 'YYYY-MM-DD' format
+  const formattedDate = new Date(date).toISOString().split('T')[0];
+  // Combine date and time into an ISO 8601 date-time string
+  return new Date(`${formattedDate}T${time}`).toISOString();
+}
 
+function convertTo24HourFormat(time12h) {
+  const [time, modifier] = time12h.split(' ');
+  let [hours, minutes] = time.split(':');
+  if (modifier === 'PM' && +hours < 12) hours = +hours + 12;
+  if (modifier === 'AM' && +hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
 // Update invoice
 router.put('/invoices/:id', async (req, res) => {
   try {
-    const updatedInvoice = await Invoice.findByIdAndUpdate(
+    // Check if the invoice exists
+    const updatedInvoice = await Invoice.findById(req.params.id);
+    if (!updatedInvoice) {
+      console.log('Invoice not found');
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+    console.log('Invoice found:', updatedInvoice);
+
+    // Update the invoice with new values
+    const updatedInvoiceData = await Invoice.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
-    )
-    if (!updatedInvoice) {
-      return res.status(404).json({ message: 'Invoice not found' })
+    );
+    console.log('Updated invoice data:', updatedInvoiceData);
+
+    // Extract relevant fields from the updated invoice
+    const {
+      bookingId,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      occasion,
+      state,
+      citySuburb: placeName,
+      venue: farmName,
+    } = updatedInvoiceData;
+
+    // Convert times to 24-hour format
+    const checkInTime24 = convertTo24HourFormat(checkInTime);
+    const checkOutTime24 = convertTo24HourFormat(checkOutTime);
+
+    console.log('Converted check-in time (24-hour):', checkInTime24);
+    console.log('Converted check-out time (24-hour):', checkOutTime24);
+
+    // Create ISO date-time strings
+    const startDateTime = createISODateTime(checkInDate, checkInTime24);
+    const endDateTime = createISODateTime(checkOutDate, checkOutTime24);
+
+    console.log('Converted start date-time:', startDateTime);
+    console.log('Converted end date-time:', endDateTime);
+
+    // Construct the updated event object
+    const updatedEvent = {
+      _id: bookingId,
+      title: occasion,
+      start: startDateTime,
+      end: endDateTime,
+    };
+    console.log('Updated event object:', updatedEvent);
+
+    // Update the event in the calendar
+    const updatedCalendar = await Calender.findOneAndUpdate(
+      {
+        name: state,
+        'places.name': placeName,
+        'places.farms.name': farmName,
+        'places.farms.events._id': bookingId,
+      },
+      {
+        $set: {
+          'places.$.farms.$[farm].events.$[event]': updatedEvent,
+        },
+      },
+      {
+        arrayFilters: [{ 'farm.name': farmName }, { 'event._id': bookingId }],
+        new: true,
+      }
+    );
+
+    if (!updatedCalendar) {
+      console.log('Calendar event not found or failed to update');
+      return res.status(404).json({ error: 'Calendar event not found or failed to update' });
     }
-    res.status(200).json(updatedInvoice)
+    console.log('Updated calendar:', updatedCalendar);
+
+    // Return the updated invoice and success message
+    res.status(200).json({
+      message: 'Invoice and event updated successfully',
+      invoice: updatedInvoiceData,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Error updating the invoice:', error.message);
+    res.status(500).json({ error: error.message });
   }
-})
+});
+
+
+
 
 // Delete invoice
 router.delete('/invoices/:id', async (req, res) => {
@@ -144,45 +341,45 @@ router.get('/search', async (req, res) => {
       selectedStatus,
       startDate,
       endDate,
-      selectedCategory // New category filter
-    } = req.query;
+      selectedCategory, // New category filter
+    } = req.query
 
-    let filter = {};
-    let missingParams = [];
+    let filter = {}
+    let missingParams = []
 
     // Build filter object dynamically based on provided query parameters
     if (selectedGuest && selectedGuest.trim()) {
-      filter.guestName = selectedGuest.trim();
+      filter.guestName = selectedGuest.trim()
     }
 
     if (selectedOwner && selectedOwner.trim()) {
-      filter.hostOwnerName = selectedOwner.trim();
+      filter.hostOwnerName = selectedOwner.trim()
     }
 
     if (selectedProperty && selectedProperty.trim()) {
-      filter.venue = selectedProperty.trim();
+      filter.venue = selectedProperty.trim()
     }
 
     if (selectedPhoneNumber && selectedPhoneNumber.trim()) {
-      filter.phoneNumber = selectedPhoneNumber.trim();
+      filter.phoneNumber = selectedPhoneNumber.trim()
     }
 
     if (selectedStatus && selectedStatus.trim()) {
-      filter.status = selectedStatus.trim();
+      filter.status = selectedStatus.trim()
     }
 
     // Category filtering
     if (selectedCategory && selectedCategory.trim()) {
-      filter.occasion = selectedCategory.trim();
+      filter.occasion = selectedCategory.trim()
     }
 
     // Date filtering (inclusive of the date, ignores time)
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      start.setUTCHours(0, 0, 0, 0); // Set time to midnight to ignore the time component
+      const start = new Date(startDate)
+      start.setUTCHours(0, 0, 0, 0) // Set time to midnight to ignore the time component
 
-      const end = new Date(endDate);
-      end.setUTCHours(23, 59, 59, 999); // Set time to end of day to ensure inclusivity
+      const end = new Date(endDate)
+      end.setUTCHours(23, 59, 59, 999) // Set time to end of day to ensure inclusivity
 
       // Check if either checkInDate or checkOutDate falls within the range
       filter.$or = [
@@ -192,34 +389,31 @@ router.get('/search', async (req, res) => {
           checkInDate: { $lte: end }, // Check if the checkInDate is before the endDate
           checkOutDate: { $gte: start }, // Check if the checkOutDate is after the startDate
         },
-      ];
+      ]
     } else {
-      missingParams.push('Start Date and End Date');
+      missingParams.push('Start Date and End Date')
     }
 
     // Log missing parameters
     if (missingParams.length > 0) {
-      console.log(`Missing Parameters: ${missingParams.join(', ')}`);
+      console.log(`Missing Parameters: ${missingParams.join(', ')}`)
     }
 
     // Find invoices based on the constructed filter object
-    const invoices = await Invoice.find(filter);
+    const invoices = await Invoice.find(filter)
 
     // Return the filtered invoices
     res.status(200).json({
       success: true,
       data: invoices,
-    });
+    })
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res.status(500).json({
       success: false,
       message: 'Server error',
-    });
+    })
   }
-});
-
-
-
+})
 
 module.exports = router

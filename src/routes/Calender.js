@@ -176,5 +176,110 @@ router.get('/:state/:place/:property/address', async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 })
-// Export the router
+router.post('/add-event', async (req, res) => {
+  const { state, placeName, farmName, event } = req.body;
+
+  try {
+    // Validate input
+    if (!state || !placeName || !farmName || !event || !event.title || !event.start || !event.end) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Convert start and end dates to Date objects
+    const eventStartDate = new Date(event.start);
+    const eventEndDate = new Date(event.end);
+
+    if (isNaN(eventStartDate.getTime()) || isNaN(eventEndDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+
+    // Find the state, place, and farm
+    const updatedCalender = await Calender.findOneAndUpdate(
+      { 
+        name: state,
+        'places.name': placeName,
+        'places.farms.name': farmName 
+      },
+      { 
+        $push: { 'places.$.farms.$[farm].events': event } 
+      },
+      { 
+        arrayFilters: [{ 'farm.name': farmName }], // Target the specific farm
+        new: true // Return the updated document
+      }
+    );
+
+    // If the state or farm is not found
+    if (!updatedCalender) {
+      return res.status(404).json({ error: 'State, place, or farm not found' });
+    }
+
+    res.status(200).json({
+      message: 'Event added successfully',
+      updatedCalender
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/update-event', async (req, res) => {
+  const { state, placeName, farmName, eventId, updatedEvent } = req.body;
+
+  try {
+    // Validate input
+    if (!state || !placeName || !farmName || !eventId || !updatedEvent) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Convert start and end dates to Date objects
+    if (updatedEvent.start) {
+      const eventStartDate = new Date(updatedEvent.start);
+      if (isNaN(eventStartDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid start date format' });
+      }
+    }
+    if (updatedEvent.end) {
+      const eventEndDate = new Date(updatedEvent.end);
+      if (isNaN(eventEndDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid end date format' });
+      }
+    }
+
+    // Find the state, place, and farm
+    const updatedCalender = await Calender.findOneAndUpdate(
+      {
+        name: state,
+        'places.name': placeName,
+        'places.farms.name': farmName,
+        'places.farms.events._id': eventId // Find the event by its ID
+      },
+      {
+        $set: {
+          'places.$.farms.$[farm].events.$[event]': updatedEvent // Update the specific event
+        }
+      },
+      {
+        arrayFilters: [
+          { 'farm.name': farmName },
+          { 'event._id': eventId } // Target the specific event by its ID
+        ],
+        new: true // Return the updated document
+      }
+    );
+
+    // If the state, place, farm, or event is not found
+    if (!updatedCalender) {
+      return res.status(404).json({ error: 'State, place, farm, or event not found' });
+    }
+
+    res.status(200).json({
+      message: 'Event updated successfully',
+      updatedCalender
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router
