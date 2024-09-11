@@ -37,7 +37,7 @@ const invoiceSchema = new mongoose.Schema({
   termsConditions: { type: String },
   status: {
     type: String,
-    enum: ['Canceled', 'Paid', 'Upcoming'],
+    enum: ['Canceled', 'Paid', 'Upcoming','Completed'],
     required: true,
   },
 })
