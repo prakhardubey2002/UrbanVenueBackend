@@ -340,6 +340,35 @@ router.put('/update-event', async (req, res) => {
   }
 });
 
+router.get('/:stateName/:farmName/address', async (req, res) => {
+  const { stateName, farmName } = req.params;
 
+  try {
+    // Find the state with the specified name and check for matching farms
+    const stateData = await Calender.findOne(
+      { name: stateName, 'places.farms.name': farmName },
+      { 'places.$': 1 } // Fetch only the place that contains the farm
+    );
+
+    // If the state or farm is not found
+    if (!stateData || stateData.places.length === 0) {
+      return res.status(404).json({ message: 'State or farm not found' });
+    }
+
+    // Find the specific farm within the place
+    const farm = stateData.places[0].farms.find(farm => farm.name === farmName);
+
+    // If the farm is not found
+    if (!farm) {
+      return res.status(404).json({ message: 'Farm not found' });
+    }
+
+    // Return the address of the farm
+    res.json(farm.address);
+  } catch (error) {
+    console.error('Error fetching farm address:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 module.exports = router
