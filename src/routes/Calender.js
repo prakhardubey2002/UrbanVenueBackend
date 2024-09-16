@@ -13,6 +13,64 @@ router.get('/states', async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+router.get('/farms-free-by-date-range', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Find all states and their places and farms
+    const allFarms = await Calender.find({}, {
+      "places.farms.name": 1,
+      "places.name": 1,
+      "name": 1,
+      "places.farms.events": 1
+    });
+
+    // Filter the farms based on availability of start and end dates
+    const farmsWithAvailableDates = allFarms.map(state => {
+      return {
+        name: state.name,
+        places: state.places.map(place => {
+          return {
+            name: place.name,
+            farms: place.farms.filter(farm => {
+              // Check if there are no events on the startDate and endDate
+              const isStartDateAvailable = !farm.events.some(event => {
+                const eventStart = new Date(event.start);
+                const eventEnd = new Date(event.end);
+                return (eventStart <= start && eventEnd >= start); // Event overlaps with the startDate
+              });
+
+              const isEndDateAvailable = !farm.events.some(event => {
+                const eventStart = new Date(event.start);
+                const eventEnd = new Date(event.end);
+                return (eventStart <= end && eventEnd >= end); // Event overlaps with the endDate
+              });
+
+              // Farm is available if both startDate and endDate are free
+              return isStartDateAvailable && isEndDateAvailable;
+            })
+          };
+        }).filter(place => place.farms.length > 0) // Only include places that have free farms
+      };
+    }).filter(state => state.places.length > 0); // Only include states that have places with free farms
+
+    // If no farms are found, return a 404 response
+    if (farmsWithAvailableDates.length === 0) {
+      return res.status(404).json({ message: "No farms available in the selected date range." });
+    }
+
+    // Send the farms with available dates
+    res.status(200).json(farmsWithAvailableDates);
+
+  } catch (error) {
+    console.error('Error fetching available farms:', error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 
 // 2. General Route: Get all data
 router.get('/', async (req, res) => {
@@ -281,5 +339,7 @@ router.put('/update-event', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
 module.exports = router
