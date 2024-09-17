@@ -10,6 +10,11 @@ const UserSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    userType: {
+        type: String,
+        enum: ['Executive', 'Admin', 'SuperAdmin'],  // Three user types
+        default: 'Executive'  // Default to 'Executive'
     }
 });
 

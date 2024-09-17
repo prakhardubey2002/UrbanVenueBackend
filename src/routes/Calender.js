@@ -158,7 +158,7 @@ router.get('/:stateName/:placeName/:farmName/events', async (req, res) => {
       return res.status(404).json({ message: 'Farm not found' })
     }
 
-    res.json(farm.events || []) // Assuming `farm.events` contains the list of events
+    res.json(farm.events || []) 
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -174,7 +174,6 @@ router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format' })
     }
 
-    // Helper function to strip time and only compare dates
     const getDateOnly = (date) => new Date(date.toISOString().split('T')[0])
 
     const state = await Calender.findOne({ name: stateName })
@@ -187,9 +186,9 @@ router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
       return res.status(404).json({ message: 'Place not found' })
     }
 
-    // Filter farms to include only those that have no events on the specified date
+    
     const farmsWithNoEvents = place.farms.filter((farm) => {
-      // Check if there are no events on the selected date
+     
       return !farm.events.some((event) => {
         const eventStartDate = getDateOnly(new Date(event.start))
         const eventEndDate = getDateOnly(new Date(event.end))
@@ -201,10 +200,9 @@ router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
       })
     })
 
-    // Map the farms to include their name and all events
     const result = farmsWithNoEvents.map((farm) => ({
       name: farm.name,
-      events: farm.events, // Include all events
+      events: farm.events, 
     }))
 
     res.json(result)
@@ -238,12 +236,12 @@ router.post('/add-event', async (req, res) => {
   const { state, placeName, farmName, event } = req.body;
 
   try {
-    // Validate input
+    
     if (!state || !placeName || !farmName || !event || !event.title || !event.start || !event.end) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Convert start and end dates to Date objects
+  
     const eventStartDate = new Date(event.start);
     const eventEndDate = new Date(event.end);
 
@@ -251,7 +249,7 @@ router.post('/add-event', async (req, res) => {
       return res.status(400).json({ error: 'Invalid date format' });
     }
 
-    // Find the state, place, and farm
+    
     const updatedCalender = await Calender.findOneAndUpdate(
       { 
         name: state,
@@ -262,12 +260,12 @@ router.post('/add-event', async (req, res) => {
         $push: { 'places.$.farms.$[farm].events': event } 
       },
       { 
-        arrayFilters: [{ 'farm.name': farmName }], // Target the specific farm
-        new: true // Return the updated document
+        arrayFilters: [{ 'farm.name': farmName }],
+        new: true 
       }
     );
 
-    // If the state or farm is not found
+    
     if (!updatedCalender) {
       return res.status(404).json({ error: 'State, place, or farm not found' });
     }
@@ -290,7 +288,7 @@ router.put('/update-event', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Convert start and end dates to Date objects
+
     if (updatedEvent.start) {
       const eventStartDate = new Date(updatedEvent.start);
       if (isNaN(eventStartDate.getTime())) {
@@ -304,29 +302,28 @@ router.put('/update-event', async (req, res) => {
       }
     }
 
-    // Find the state, place, and farm
     const updatedCalender = await Calender.findOneAndUpdate(
       {
         name: state,
         'places.name': placeName,
         'places.farms.name': farmName,
-        'places.farms.events._id': eventId // Find the event by its ID
+        'places.farms.events._id': eventId 
       },
       {
         $set: {
-          'places.$.farms.$[farm].events.$[event]': updatedEvent // Update the specific event
+          'places.$.farms.$[farm].events.$[event]': updatedEvent 
         }
       },
       {
         arrayFilters: [
           { 'farm.name': farmName },
-          { 'event._id': eventId } // Target the specific event by its ID
+          { 'event._id': eventId } 
         ],
-        new: true // Return the updated document
+        new: true 
       }
     );
 
-    // If the state, place, farm, or event is not found
+   
     if (!updatedCalender) {
       return res.status(404).json({ error: 'State, place, farm, or event not found' });
     }
@@ -344,13 +341,13 @@ router.get('/:stateName/:farmName/address', async (req, res) => {
   const { stateName, farmName } = req.params;
 
   try {
-    // Find the state with the specified name and check for matching farms
+   
     const stateData = await Calender.findOne(
       { name: stateName, 'places.farms.name': farmName },
-      { 'places.$': 1 } // Fetch only the place that contains the farm
+      { 'places.$': 1 } 
     );
 
-    // If the state or farm is not found
+   
     if (!stateData || stateData.places.length === 0) {
       return res.status(404).json({ message: 'State or farm not found' });
     }

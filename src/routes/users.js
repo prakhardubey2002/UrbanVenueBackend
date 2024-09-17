@@ -1,49 +1,62 @@
-const express = require('express')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const User = require('../models/User')
-const router = express.Router()
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const router = express.Router();
 
 // Register route
 router.post('/register', async (req, res) => {
-  const { username, password } = req.body
+  const { username, password, userType } = req.body; // Added userType
 
   try {
-    const user = await User.findOne({ username })
+    const user = await User.findOne({ username });
     if (user) {
-      return res.status(400).json({ message: 'User already exists' })
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    const newUser = new User({ username, password })
-    await newUser.save()
+    const newUser = new User({ username, password, userType }); // Save userType
+    await newUser.save();
 
-    res.status(201).json({ message: 'User registered successfully' })
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
+
 // Login route
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body
+  const { username, password, userType } = req.body; // Add userType to the request body
 
   try {
-    const user = await User.findOne({ username })
+    // Find user by username
+    const user = await User.findOne({ username });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' })
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password)
+    // Check if password is correct
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' })
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id }, 'your_jwt_secret', {
-      expiresIn: '1h',
-    })
-    res.json({ token })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
+    // Ensure the user is logging in with the correct userType
+    if (user.userType !== userType) {
+      return res.status(403).json({ message: `Access denied for role: ${userType}` });
+    }
 
-module.exports = router
+    // Create token that includes both user ID and userType
+    const token = jwt.sign(
+      { id: user._id, userType: user.userType }, // Include userType in token
+      'your_jwt_secret', // Secret key
+      { expiresIn: '1h' } // Token expiration time
+    );
+
+    // Return the token and userType to the client
+    res.json({ token, userType: user.userType });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
