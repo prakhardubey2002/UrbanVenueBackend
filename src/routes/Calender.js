@@ -13,6 +13,43 @@ router.get('/states', async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+router.get('/all-farms', async (req, res) => {
+  try {
+    // Fetch all states with their places and farms
+    const allFarms = await Calender.find({}, {
+      'places.farms.name': 1,
+      'places.farms.address': 1, 
+      'places.farms.events': 1,  
+      'places.name': 1,
+      'name': 1
+    });
+
+  
+    const farmDetails = allFarms.map(state => {
+      return state.places.map(place => {
+        return place.farms.map(farm => ({
+          state: state.name,
+          place: place.name,
+          farmName: farm.name,
+          address: farm.address, 
+          events: farm.events 
+        }));
+      });
+    }).flat(2); // Flatten the nested arrays
+
+    // If no farms are found, return a 404 response
+    if (farmDetails.length === 0) {
+      return res.status(404).json({ message: 'No farms found' });
+    }
+
+    // Send the farm details
+    res.status(200).json(farmDetails);
+  } catch (error) {
+    console.error('Error fetching farm details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 router.get('/farms-free-by-date-range', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
