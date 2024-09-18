@@ -404,5 +404,178 @@ router.get('/:stateName/:farmName/address', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+router.post('/add-farm', async (req, res) => {
+  try {
+    const { stateName, placeName, farmDetails } = req.body;
+
+    // Validate request body
+    if (!stateName || !placeName || !farmDetails) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const {
+      farmId, // Include farmId in the details
+      name,
+      address,
+      phoneNumber,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      maxPeople,
+      occasion,
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      advance,
+      balancePayment,
+      securityAmount,
+      status
+    } = farmDetails;
+
+    if (!farmId || !name || !address) {
+      return res.status(400).json({ message: 'Farm ID, name, and address are required' });
+    }
+
+    // Generate a random date in the year 1980
+    const getRandomDateIn1980 = () => {
+      const start = new Date(1980, 0, 1); // January 1, 1980
+      const end = new Date(1980, 11, 31); // December 31, 1980
+      return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    };
+
+    const randomEventDate = getRandomDateIn1980();
+
+    // Create an initializer event with the random date
+    const initialEvent = {
+      title: 'Farm Opening Event',
+      start: randomEventDate.toISOString(),
+      end: new Date(randomEventDate.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2-hour event
+    };
+
+    // Find the state by name
+    let state = await Calender.findOne({ name: stateName });
+
+    if (!state) {
+      // If the state doesn't exist, create a new state with the place and farm
+      const newFarm = {
+        farmId, // Include farmId
+        name,
+        address,
+        phoneNumber,
+        checkInDate,
+        checkInTime,
+        checkOutDate,
+        checkOutTime,
+        maxPeople,
+        occasion,
+        hostOwnerName,
+        hostNumber,
+        totalBooking,
+        advance,
+        balancePayment,
+        securityAmount,
+        status,
+        events: [initialEvent] // Add the initializer event
+      };
+
+      const newPlace = {
+        name: placeName,
+        farms: [newFarm] // Add the farm to the place
+      };
+
+      state = new Calender({
+        name: stateName,
+        places: [newPlace] // Add the place with the farm to the state
+      });
+
+      await state.save();
+
+      return res.status(201).json({ message: 'State, place, and farm added successfully with initial event', farm: newFarm });
+    }
+
+    // If state exists, check if the place exists
+    let place = state.places.find(p => p.name === placeName);
+
+    if (!place) {
+      // If the place doesn't exist, create it and add the farm
+      const newFarm = {
+        farmId, // Include farmId
+        name,
+        address,
+        phoneNumber,
+        checkInDate,
+        checkInTime,
+        checkOutDate,
+        checkOutTime,
+        maxPeople,
+        occasion,
+        hostOwnerName,
+        hostNumber,
+        totalBooking,
+        advance,
+        balancePayment,
+        securityAmount,
+        status,
+        events: [initialEvent] // Add the initializer event
+      };
+
+      place = { name: placeName, farms: [newFarm] };
+      state.places.push(place); // Add the place with the farm
+
+      state.markModified('places');
+      await state.save();
+
+      return res.status(201).json({ message: 'Place and farm added successfully with initial event', farm: newFarm });
+    }
+
+    // Check if the farm already exists in the place
+    const farmExists = place.farms.find(f => f.farmId === farmId);
+
+    if (farmExists) {
+      return res.status(400).json({ message: 'Farm with this ID already exists in this place' });
+    }
+
+    // If the place exists, just add the farm
+    const newFarm = {
+      farmId, // Include farmId
+      name,
+      address,
+      phoneNumber,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      maxPeople,
+      occasion,
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      advance,
+      balancePayment,
+      securityAmount,
+      status,
+      events: [initialEvent] // Add the initializer event
+    };
+
+    place.farms.push(newFarm); // Add the farm to the existing place
+
+    state.markModified('places'); // Mark the places array as modified
+
+    // Save the updated state
+    await state.save();
+
+    res.status(201).json({ message: 'Farm added successfully with initial event', farm: newFarm });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+
+
+
+
+
 
 module.exports = router
