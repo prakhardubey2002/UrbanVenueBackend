@@ -456,12 +456,11 @@ router.post('/add-farm', async (req, res) => {
     // Find the state by name
     let state = await Calender.findOne({ name: stateName });
 
-    if (!state) {
-      // If the state doesn't exist, create a new state with the place and farm
-      const newFarm = {
-        farmId, // Include farmId
+    const newFarm = {
+      farmId, // Include farmId
+      address, // Keep the address separately
+      details: {
         name,
-        address,
         phoneNumber,
         checkInDate,
         checkInTime,
@@ -476,9 +475,12 @@ router.post('/add-farm', async (req, res) => {
         balancePayment,
         securityAmount,
         status,
-        events: [initialEvent] // Add the initializer event
-      };
+      },
+      events: [initialEvent], // Add the initializer event
+    };
 
+    if (!state) {
+      // If the state doesn't exist, create a new state with the place and farm
       const newPlace = {
         name: placeName,
         farms: [newFarm] // Add the farm to the place
@@ -499,27 +501,6 @@ router.post('/add-farm', async (req, res) => {
 
     if (!place) {
       // If the place doesn't exist, create it and add the farm
-      const newFarm = {
-        farmId, // Include farmId
-        name,
-        address,
-        phoneNumber,
-        checkInDate,
-        checkInTime,
-        checkOutDate,
-        checkOutTime,
-        maxPeople,
-        occasion,
-        hostOwnerName,
-        hostNumber,
-        totalBooking,
-        advance,
-        balancePayment,
-        securityAmount,
-        status,
-        events: [initialEvent] // Add the initializer event
-      };
-
       place = { name: placeName, farms: [newFarm] };
       state.places.push(place); // Add the place with the farm
 
@@ -537,27 +518,6 @@ router.post('/add-farm', async (req, res) => {
     }
 
     // If the place exists, just add the farm
-    const newFarm = {
-      farmId, // Include farmId
-      name,
-      address,
-      phoneNumber,
-      checkInDate,
-      checkInTime,
-      checkOutDate,
-      checkOutTime,
-      maxPeople,
-      occasion,
-      hostOwnerName,
-      hostNumber,
-      totalBooking,
-      advance,
-      balancePayment,
-      securityAmount,
-      status,
-      events: [initialEvent] // Add the initializer event
-    };
-
     place.farms.push(newFarm); // Add the farm to the existing place
 
     state.markModified('places'); // Mark the places array as modified
@@ -571,11 +531,6 @@ router.post('/add-farm', async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 });
-
-
-
-
-
 
 
 module.exports = router

@@ -30,17 +30,34 @@ const EventSchema = new mongoose.Schema({
 
 const AddressSchema = new mongoose.Schema({
   addressLine1: { type: String, required: true },
-  addressLine2: { type: String }, 
+  addressLine2: { type: String },
   country: { type: String, required: true },
   state: { type: String, required: true },
-  suburb: { type: String }, 
-  zipCode: { type: String, required: true }, 
+  suburb: { type: String },
+  zipCode: { type: String, required: true },
 });
 
+// Add a details field in the farm schema to hold additional details about the farm
 const FarmSchema = new mongoose.Schema({
   farmId: { type: String, required: true },
-  name: { type: String, required: true },
   address: { type: AddressSchema, required: true }, // Embedded address document
+  details: {
+    name: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    checkInDate: { type: Date, required: true },
+    checkInTime: { type: String, required: true },
+    checkOutDate: { type: Date, required: true },
+    checkOutTime: { type: String, required: true },
+    maxPeople: { type: Number, required: true },
+    occasion: { type: String }, // Optional
+    hostOwnerName: { type: String, required: true },
+    hostNumber: { type: String, required: true },
+    totalBooking: { type: Number, required: true },
+    advance: { type: Number, required: true },
+    balancePayment: { type: Number, required: true },
+    securityAmount: { type: Number, required: true },
+    status: { type: String, required: true, },
+  },
   events: [EventSchema],
 });
 
