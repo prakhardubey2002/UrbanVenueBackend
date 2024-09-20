@@ -28,7 +28,7 @@ router.post('/invoices', async (req, res) => {
       balancePayment,
       securityAmount,
       urbanvenuecommission,
-      venue,
+      venue, // This is the farm name inside details
       addressLine1,
       addressLine2,
       country,
@@ -38,7 +38,7 @@ router.post('/invoices', async (req, res) => {
       showAdvanceDetails,
       status,
       pendingCollectedBy,
-    } = req.body
+    } = req.body;
 
     // Construct the event object based on the booking information
     const event = {
@@ -46,7 +46,7 @@ router.post('/invoices', async (req, res) => {
       start: `${checkInDate}T${checkInTime}`,
       end: `${checkOutDate}T${checkOutTime}`,
       _id: bookingId, // Add bookingId to the event
-    }
+    };
 
     // Save the invoice
     const invoiceData = {
@@ -80,45 +80,44 @@ router.post('/invoices', async (req, res) => {
       showAdvanceDetails,
       status,
       pendingCollectedBy,
-    }
+    };
 
     // Save the invoice first
-    const invoice = new Invoice(invoiceData)
-    const savedInvoice = await invoice.save()
+    const invoice = new Invoice(invoiceData);
+    const savedInvoice = await invoice.save();
 
     // Now add the event to the specified farm in the calendar
     const updatedCalendar = await Calender.findOneAndUpdate(
       {
         name: state,
         'places.name': citySuburb,
-        'places.farms.name': venue,
+        'places.farms.details.name': venue, // Accessing farm name inside details
       },
       {
         $push: { 'places.$.farms.$[farm].events': event },
       },
       {
-        arrayFilters: [{ 'farm.name': venue }],
+        arrayFilters: [{ 'farm.details.name': venue }], // Accessing farm name inside details
         new: true,
       }
-    )
+    );
 
     if (!updatedCalendar) {
       // Rollback invoice if the event creation fails
-      await Invoice.findByIdAndDelete(savedInvoice._id)
-      return res
-        .status(404)
-        .json({ error: 'Farm not found, invoice not saved' })
+      await Invoice.findByIdAndDelete(savedInvoice._id);
+      return res.status(404).json({ error: 'Farm not found, invoice not saved' });
     }
 
     // Return the saved invoice and success message
     res.status(201).json({
       message: 'Invoice and event created successfully',
       invoice: savedInvoice,
-    })
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
+
 
 // Get all invoices
 router.get('/invoices', async (req, res) => {
@@ -216,7 +215,7 @@ router.put('/invoices/:id', async (req, res) => {
       {
         name: state,
         'places.name': placeName,
-        'places.farms.name': farmName,
+        'places.farms.details.name': farmName, // Accessing farm name inside details
         'places.farms.events._id': bookingId,
       },
       {
@@ -225,7 +224,10 @@ router.put('/invoices/:id', async (req, res) => {
         },
       },
       {
-        arrayFilters: [{ 'farm.name': farmName }, { 'event._id': bookingId }],
+        arrayFilters: [
+          { 'farm.details.name': farmName }, // Accessing farm name inside details
+          { 'event._id': bookingId }
+        ],
         new: true,
       }
     );
@@ -246,6 +248,7 @@ router.put('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 

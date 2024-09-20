@@ -16,26 +16,42 @@ router.get('/states', async (req, res) => {
 router.get('/all-farms', async (req, res) => {
   try {
     // Fetch all states with their places and farms
-    const allFarms = await Calender.find({}, {
-      'places.farms.name': 1,
-      'places.farms.address': 1, 
-      'places.farms.events': 1,  
+    const allStates = await Calender.find({}, {
+      'places.farms.details': 1,
+      'places.farms.address': 1,
+      'places.farms.events': 1,
+      'places.farms.farmId': 1, // Include farmId in the projection
       'places.name': 1,
       'name': 1
     });
 
-  
-    const farmDetails = allFarms.map(state => {
-      return state.places.map(place => {
-        return place.farms.map(farm => ({
+    // Map the data to get farm details
+    const farmDetails = allStates.flatMap(state => 
+      state.places.flatMap(place =>
+        place.farms.map(farm => ({
           state: state.name,
           place: place.name,
-          farmName: farm.name,
-          address: farm.address, 
-          events: farm.events 
-        }));
-      });
-    }).flat(2); // Flatten the nested arrays
+          farmId: farm.farmId, // Ensure farmId is included
+          name: farm.details.name,
+          phoneNumber: farm.details.phoneNumber,
+          checkInDate: farm.details.checkInDate,
+          checkInTime: farm.details.checkInTime,
+          checkOutDate: farm.details.checkOutDate,
+          checkOutTime: farm.details.checkOutTime,
+          maxPeople: farm.details.maxPeople,
+          occasion: farm.details.occasion,
+          hostOwnerName: farm.details.hostOwnerName,
+          hostNumber: farm.details.hostNumber,
+          totalBooking: farm.details.totalBooking,
+          advance: farm.details.advance,
+          balancePayment: farm.details.balancePayment,
+          securityAmount: farm.details.securityAmount,
+          status: farm.details.status,
+          address: farm.address,
+          // events: farm.events // Include events if needed
+        }))
+      )
+    );
 
     // If no farms are found, return a 404 response
     if (farmDetails.length === 0) {
@@ -50,50 +66,137 @@ router.get('/all-farms', async (req, res) => {
   }
 });
 
+router.put('/update-farm/:farmId', async (req, res) => {
+  try {
+    const { farmId } = req.params;
+    const {
+      name,
+      phoneNumber,
+      address,
+      checkInDate,
+      checkInTime,
+      checkOutDate,
+      checkOutTime,
+      maxPeople,
+      occasion,
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      advance,
+      balancePayment,
+      securityAmount,
+      status,
+      place,
+      state
+    } = req.body;
+
+    // Ensure farm details are provided
+    if (!farmId) {
+      console.error('Farm ID is required');
+      return res.status(400).json({ message: 'Farm ID is required' });
+    }
+
+    // Find and update the farm document
+    const updatedFarm = await Calender.findOneAndUpdate(
+      { 'places.farms.farmId': farmId },
+      {
+        $set: {
+          'places.$[place].farms.$[farm].name': name,
+          'places.$[place].farms.$[farm].phoneNumber': phoneNumber,
+          'places.$[place].farms.$[farm].address': address,
+          'places.$[place].farms.$[farm].checkInDate': checkInDate,
+          'places.$[place].farms.$[farm].checkInTime': checkInTime,
+          'places.$[place].farms.$[farm].checkOutDate': checkOutDate,
+          'places.$[place].farms.$[farm].checkOutTime': checkOutTime,
+          'places.$[place].farms.$[farm].maxPeople': maxPeople,
+          'places.$[place].farms.$[farm].occasion': occasion,
+          'places.$[place].farms.$[farm].hostOwnerName': hostOwnerName,
+          'places.$[place].farms.$[farm].hostNumber': hostNumber,
+          'places.$[place].farms.$[farm].totalBooking': totalBooking,
+          'places.$[place].farms.$[farm].advance': advance,
+          'places.$[place].farms.$[farm].balancePayment': balancePayment,
+          'places.$[place].farms.$[farm].securityAmount': securityAmount,
+          'places.$[place].farms.$[farm].status': status,
+          'places.$[place].state': state, // Assuming you want to update the place and state at the place level
+          'places.$[place].name': place
+        }
+      },
+      {
+        arrayFilters: [
+          { 'place.name': place },
+          { 'farm.farmId': farmId }
+        ],
+        new: true, // Return the updated document
+        runValidators: true // Validate the update against the schema
+      }
+    );
+
+    if (!updatedFarm) {
+      console.error(`Farm with ID ${farmId} not found`);
+      return res.status(404).json({ message: 'Farm not found' });
+    }
+
+    // Find and return the updated farm details
+    const updatedPlace = updatedFarm.places.find(place =>
+      place.farms.some(farm => farm.farmId === farmId)
+    );
+    const updatedFarmDetails = updatedPlace.farms.find(farm => farm.farmId === farmId);
+
+    res.status(200).json({ message: 'Farm updated successfully', farm: updatedFarmDetails });
+  } catch (error) {
+    console.error('Error updating farm details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 router.get('/farms-free-by-date-range', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Find all states and their places and farms
+    // Validate date range
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+      return res.status(400).json({ message: 'Invalid date range provided' });
+    }
+
+    // Find all states, places, and farms with their events
     const allFarms = await Calender.find({}, {
       "places.farms.name": 1,
       "places.name": 1,
       "name": 1,
-      "places.farms.events": 1
+      "places.farms.events": 1,
+      "places.farms.details": 1 // Include details to access the farm name
     });
 
-    // Filter the farms based on availability of start and end dates
+    // Filter the farms based on availability in the given date range
     const farmsWithAvailableDates = allFarms.map(state => {
       return {
         name: state.name,
         places: state.places.map(place => {
           return {
-            name: place.name,
+            name: place.name, // The name of the place
             farms: place.farms.filter(farm => {
-              // Check if there are no events on the startDate and endDate
-              const isStartDateAvailable = !farm.events.some(event => {
+              // Check if the farm has no overlapping events within the date range
+              const isAvailable = !farm.events.some(event => {
                 const eventStart = new Date(event.start);
                 const eventEnd = new Date(event.end);
-                return (eventStart <= start && eventEnd >= start); // Event overlaps with the startDate
+                // Event overlaps with the given date range if:
+                return (eventStart <= end && eventEnd >= start);
               });
 
-              const isEndDateAvailable = !farm.events.some(event => {
-                const eventStart = new Date(event.start);
-                const eventEnd = new Date(event.end);
-                return (eventStart <= end && eventEnd >= end); // Event overlaps with the endDate
-              });
-
-              // Farm is available if both startDate and endDate are free
-              return isStartDateAvailable && isEndDateAvailable;
-            })
+              return isAvailable;
+            }).map(farm => ({
+              name: farm.details.name, // Access the name from details
+              farmId: farm.farmId,
+              address: farm.address,
+              events: farm.events,
+            }))
           };
-        }).filter(place => place.farms.length > 0) // Only include places that have free farms
+        }).filter(place => place.farms.length > 0) // Include only places with available farms
       };
-    }).filter(state => state.places.length > 0); // Only include states that have places with free farms
+    }).filter(state => state.places.length > 0); // Include only states with places having available farms
 
-    // If no farms are found, return a 404 response
+    // If no farms are available, return a 404 response
     if (farmsWithAvailableDates.length === 0) {
       return res.status(404).json({ message: "No farms available in the selected date range." });
     }
@@ -106,6 +209,7 @@ router.get('/farms-free-by-date-range', async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 
@@ -155,120 +259,147 @@ router.get('/:stateName/places', async (req, res) => {
 
 // Get all farm names by state and place name
 router.get('/:stateName/:placeName/farms', async (req, res) => {
-  const { stateName, placeName } = req.params
+  const { stateName, placeName } = req.params;
 
   try {
-    const state = await Calender.findOne({ name: stateName }).select('places')
+    // Find the state by its name and select only the places field
+    const state = await Calender.findOne({ name: stateName }).select('places');
     if (!state) {
-      return res.status(404).json({ message: 'State not found' })
+      return res.status(404).json({ message: 'State not found' });
     }
 
-    const place = state.places.find((place) => place.name === placeName)
+    // Find the place within the state
+    const place = state.places.find(place => place.name === placeName);
     if (!place) {
-      return res.status(404).json({ message: 'Place not found' })
+      return res.status(404).json({ message: 'Place not found' });
     }
 
-    const farmNames = place.farms.map((farm) => farm.name)
-    res.json(farmNames)
+    // Map over the farms and extract the names from the details field
+    const farmNames = place.farms.map(farm => farm.details.name);
+    res.json(farmNames);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
 
 // Get events by state, place, and farm (property)
 router.get('/:stateName/:placeName/:farmName/events', async (req, res) => {
-  const { stateName, placeName, farmName } = req.params
+  const { stateName, placeName, farmName } = req.params;
 
   try {
-    const state = await Calender.findOne({ name: stateName })
+    // Find the state by its name
+    const state = await Calender.findOne({ name: stateName });
     if (!state) {
-      return res.status(404).json({ message: 'State not found' })
+      return res.status(404).json({ message: 'State not found' });
     }
 
-    const place = state.places.find((place) => place.name === placeName)
+    // Find the place within the state
+    const place = state.places.find(place => place.name === placeName);
     if (!place) {
-      return res.status(404).json({ message: 'Place not found' })
+      return res.status(404).json({ message: 'Place not found' });
     }
 
-    const farm = place.farms.find((farm) => farm.name === farmName)
+    // Find the farm within the place by matching the name in the details field
+    const farm = place.farms.find(farm => farm.details.name === farmName);
     if (!farm) {
-      return res.status(404).json({ message: 'Farm not found' })
+      return res.status(404).json({ message: 'Farm not found' });
     }
 
-    res.json(farm.events || []) 
+    // Return the events for the found farm
+    res.json(farm.events || []);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
+
 
 // Get farms with available events on a specific date
 router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
-  const { stateName, placeName, date } = req.params
+  const { stateName, placeName, date } = req.params;
 
   try {
-    const selectedDate = new Date(date)
+    const selectedDate = new Date(date);
     if (isNaN(selectedDate.getTime())) {
-      return res.status(400).json({ message: 'Invalid date format' })
+      return res.status(400).json({ message: 'Invalid date format' });
     }
 
-    const getDateOnly = (date) => new Date(date.toISOString().split('T')[0])
+    // Normalize date to ensure comparisons are consistent
+    const normalizeDate = (date) => new Date(date.toISOString().split('T')[0]);
 
-    const state = await Calender.findOne({ name: stateName })
+    const state = await Calender.findOne({ name: stateName });
     if (!state) {
-      return res.status(404).json({ message: 'State not found' })
+      return res.status(404).json({ message: 'State not found' });
     }
 
-    const place = state.places.find((place) => place.name === placeName)
+    const place = state.places.find((place) => place.name === placeName);
     if (!place) {
-      return res.status(404).json({ message: 'Place not found' })
+      return res.status(404).json({ message: 'Place not found' });
     }
 
-    
+    // Filter farms with no events on the selected date
     const farmsWithNoEvents = place.farms.filter((farm) => {
-     
       return !farm.events.some((event) => {
-        const eventStartDate = getDateOnly(new Date(event.start))
-        const eventEndDate = getDateOnly(new Date(event.end))
-        const comparisonDate = getDateOnly(selectedDate)
+        const eventStartDate = normalizeDate(new Date(event.start));
+        const eventEndDate = normalizeDate(new Date(event.end));
+        const comparisonDate = normalizeDate(selectedDate);
 
-        return (
-          comparisonDate >= eventStartDate && comparisonDate <= eventEndDate
-        )
-      })
-    })
+        // Check if the selected date falls within the event range
+        return comparisonDate >= eventStartDate && comparisonDate <= eventEndDate;
+      });
+    });
 
+    // Format result to include farm name from details and its events
     const result = farmsWithNoEvents.map((farm) => ({
-      name: farm.name,
-      events: farm.events, 
-    }))
+      name: farm.details.name, // Access farm name from 'details.name'
+      events: farm.events, // Include events if needed
+    }));
 
-    res.json(result)
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Error fetching farms:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-})
+});
+
 
 router.get('/:state/:place/:property/address', async (req, res) => {
   try {
-    const { state, place, property } = req.params
-    console.log(`Received request for state: ${req.params.state}, place: ${req.params.place}, property: ${req.params.property}`);
+    const { state, place, property } = req.params;
+    console.log(`Received request for state: ${state}, place: ${place}, property: ${property}`);
+
+    // Find the state with the specified place and farm
     const stateData = await Calender.findOne(
-      { name: state, 'places.name': place, 'places.farms.name': property },
-      { 'places.$': 1 }
-    )
-    if (!stateData || stateData.places.length === 0)
-      return res.status(404).json({ message: 'State or place not found' })
+      { 
+        name: state, 
+        'places.name': place, 
+        'places.farms.details.name': property 
+      },
+      { 'places.$': 1 } // Select only the matched place
+    );
 
+    // Check if the state and place exist
+    if (!stateData || stateData.places.length === 0) {
+      return res.status(404).json({ message: 'State or place not found' });
+    }
+
+    // Find the farm within the matched place by its details.name
     const farm = stateData.places[0].farms.find(
-      (farm) => farm.name === property
-    )
-    if (!farm) return res.status(404).json({ message: 'Farm not found' })
+      (farm) => farm.details.name === property
+    );
 
-    res.json(farm.address)
+    // Check if the farm exists
+    if (!farm) {
+      return res.status(404).json({ message: 'Farm not found' });
+    }
+
+    // Return the address of the farm
+    res.json(farm.address);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error retrieving farm address:', error);
+    res.status(500).json({ message: 'Server error' });
   }
-})
+});
+
 router.post('/add-event', async (req, res) => {
   const { state, placeName, farmName, event } = req.body;
 
@@ -378,19 +509,17 @@ router.get('/:stateName/:farmName/address', async (req, res) => {
   const { stateName, farmName } = req.params;
 
   try {
-   
     const stateData = await Calender.findOne(
-      { name: stateName, 'places.farms.name': farmName },
-      { 'places.$': 1 } 
+      { name: stateName, 'places.farms.details.name': farmName },
+      { 'places.$': 1 }
     );
 
-   
     if (!stateData || stateData.places.length === 0) {
       return res.status(404).json({ message: 'State or farm not found' });
     }
 
     // Find the specific farm within the place
-    const farm = stateData.places[0].farms.find(farm => farm.name === farmName);
+    const farm = stateData.places[0].farms.find(farm => farm.details.name === farmName);
 
     // If the farm is not found
     if (!farm) {
@@ -404,6 +533,7 @@ router.get('/:stateName/:farmName/address', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 router.post('/add-farm', async (req, res) => {
   try {
     const { stateName, placeName, farmDetails } = req.body;
