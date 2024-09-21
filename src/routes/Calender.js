@@ -66,13 +66,13 @@ router.get('/all-farms', async (req, res) => {
   }
 });
 
-router.put('/update-farm/:farmId', async (req, res) => {
+router.patch('/update-farm/:farmId', async (req, res) => {
   try {
     const { farmId } = req.params;
     const {
+      address,
       name,
       phoneNumber,
-      address,
       checkInDate,
       checkInTime,
       checkOutDate,
@@ -86,44 +86,52 @@ router.put('/update-farm/:farmId', async (req, res) => {
       balancePayment,
       securityAmount,
       status,
-      place,
-      state
     } = req.body;
 
-    // Ensure farm details are provided
+    // Ensure farm ID is provided
     if (!farmId) {
       console.error('Farm ID is required');
       return res.status(400).json({ message: 'Farm ID is required' });
     }
 
+    // Build dynamic update object with only the provided fields
+    let updateFields = {};
+    
+    if (address) {
+      updateFields = {
+        ...updateFields,
+        'places.$[place].farms.$[farm].address.addressLine1': address.addressLine1,
+        'places.$[place].farms.$[farm].address.addressLine2': address.addressLine2,
+        'places.$[place].farms.$[farm].address.country': address.country,
+        'places.$[place].farms.$[farm].address.state': address.state,
+        'places.$[place].farms.$[farm].address.suburb': address.suburb,
+        'places.$[place].farms.$[farm].address.zipCode': address.zipCode,
+      };
+    }
+
+    if (name) updateFields['places.$[place].farms.$[farm].details.name'] = name;
+    if (phoneNumber) updateFields['places.$[place].farms.$[farm].details.phoneNumber'] = phoneNumber;
+    if (checkInDate) updateFields['places.$[place].farms.$[farm].details.checkInDate'] = checkInDate;
+    if (checkInTime) updateFields['places.$[place].farms.$[farm].details.checkInTime'] = checkInTime;
+    if (checkOutDate) updateFields['places.$[place].farms.$[farm].details.checkOutDate'] = checkOutDate;
+    if (checkOutTime) updateFields['places.$[place].farms.$[farm].details.checkOutTime'] = checkOutTime;
+    if (maxPeople) updateFields['places.$[place].farms.$[farm].details.maxPeople'] = maxPeople;
+    if (occasion) updateFields['places.$[place].farms.$[farm].details.occasion'] = occasion;
+    if (hostOwnerName) updateFields['places.$[place].farms.$[farm].details.hostOwnerName'] = hostOwnerName;
+    if (hostNumber) updateFields['places.$[place].farms.$[farm].details.hostNumber'] = hostNumber;
+    if (totalBooking) updateFields['places.$[place].farms.$[farm].details.totalBooking'] = totalBooking;
+    if (advance) updateFields['places.$[place].farms.$[farm].details.advance'] = advance;
+    if (balancePayment) updateFields['places.$[place].farms.$[farm].details.balancePayment'] = balancePayment;
+    if (securityAmount) updateFields['places.$[place].farms.$[farm].details.securityAmount'] = securityAmount;
+    if (status) updateFields['places.$[place].farms.$[farm].details.status'] = status;
+
     // Find and update the farm document
     const updatedFarm = await Calender.findOneAndUpdate(
       { 'places.farms.farmId': farmId },
-      {
-        $set: {
-          'places.$[place].farms.$[farm].name': name,
-          'places.$[place].farms.$[farm].phoneNumber': phoneNumber,
-          'places.$[place].farms.$[farm].address': address,
-          'places.$[place].farms.$[farm].checkInDate': checkInDate,
-          'places.$[place].farms.$[farm].checkInTime': checkInTime,
-          'places.$[place].farms.$[farm].checkOutDate': checkOutDate,
-          'places.$[place].farms.$[farm].checkOutTime': checkOutTime,
-          'places.$[place].farms.$[farm].maxPeople': maxPeople,
-          'places.$[place].farms.$[farm].occasion': occasion,
-          'places.$[place].farms.$[farm].hostOwnerName': hostOwnerName,
-          'places.$[place].farms.$[farm].hostNumber': hostNumber,
-          'places.$[place].farms.$[farm].totalBooking': totalBooking,
-          'places.$[place].farms.$[farm].advance': advance,
-          'places.$[place].farms.$[farm].balancePayment': balancePayment,
-          'places.$[place].farms.$[farm].securityAmount': securityAmount,
-          'places.$[place].farms.$[farm].status': status,
-          'places.$[place].state': state, // Assuming you want to update the place and state at the place level
-          'places.$[place].name': place
-        }
-      },
+      { $set: updateFields },
       {
         arrayFilters: [
-          { 'place.name': place },
+          { 'place.name': req.body.place }, // match the place name if provided
           { 'farm.farmId': farmId }
         ],
         new: true, // Return the updated document
@@ -148,6 +156,7 @@ router.put('/update-farm/:farmId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 router.get('/farms-free-by-date-range', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
