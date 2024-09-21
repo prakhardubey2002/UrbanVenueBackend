@@ -12,7 +12,12 @@ const executiveSchema = new mongoose.Schema({
     type: String,
     enum: ['Working', 'Resigned', 'Terminated'],
     default: 'Working'
-  }
+  },
+  userType: {
+    type: String,
+    enum: [ 'Executive'],  // Three user types
+    default: 'Executive'  
+}
 });
 
 const Executive = mongoose.model('Executive', executiveSchema);
