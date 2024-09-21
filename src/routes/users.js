@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Executive = require('../models/Executive');
 const Admin = require('../models/Admin');
 const Superadmin = require('../models/Superadmin');
+const { default: mongoose } = require('mongoose');
 const router = express.Router();
 
 
@@ -127,6 +128,27 @@ router.post('/register-executive', async (req, res) => {
     return res.status(500).json({ message: 'Server error, please try again later.' });
   }
 });
+router.delete('/executives/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Validate the ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).send('Invalid executive ID format');
+    }
+
+    const deletedExecutive = await Executive.findByIdAndDelete(id);
+
+    if (!deletedExecutive) {
+      return res.status(404).send('Executive not found');
+    }
+
+    res.status(200).send('Executive deleted successfully');
+  } catch (error) {
+    console.error('Error deleting executive:', error);
+    res.status(500).send('Server error');
+  }
+});
 
 // Admin registration route
 router.post('/register-admin', async (req, res) => {
@@ -223,4 +245,6 @@ router.patch('/executives/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
 module.exports = router;
