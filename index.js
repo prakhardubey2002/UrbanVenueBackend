@@ -24,10 +24,12 @@ const userRoutes = require('./src/routes/users')
 const bookRoutes =require('./src/routes/booking')
 const calenderRoutes = require('./src/routes/Calender')
 const invoiceRoutes = require('./src/routes/invoice')
+const occasionRoutes = require('./src/routes/occasion')
 app.use('/', userRoutes)
 app.use('/',bookRoutes)
 app.use('/api/calender',calenderRoutes)
 app.use('/api/invoices', invoiceRoutes);
+app.use('/occasion', occasionRoutes);
 app.get('/', (req, res) => {
   res.send('Hello World');
 });

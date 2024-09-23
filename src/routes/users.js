@@ -128,28 +128,31 @@ router.post('/register-executive', async (req, res) => {
     return res.status(500).json({ message: 'Server error, please try again later.' });
   }
 });
-router.delete('/executives/:id', async (req, res) => {
-  const { id } = req.params;
 
-  try {
-    // Validate the ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).send('Invalid executive ID format');
-    }
+//   const { id } = req.params;
+//   const updateData = req.body; // The data to update
 
-    const deletedExecutive = await Executive.findByIdAndDelete(id);
+//   try {
+//     // Validate the ObjectId
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: 'Invalid Executive ID' });
+//     }
 
-    if (!deletedExecutive) {
-      return res.status(404).send('Executive not found');
-    }
+//     const updatedExecutive = await Executive.findByIdAndUpdate(id, updateData, {
+//       new: true, // Return the updated document
+//       runValidators: true, // Validate before updating
+//     });
 
-    res.status(200).send('Executive deleted successfully');
-  } catch (error) {
-    console.error('Error deleting executive:', error);
-    res.status(500).send('Server error');
-  }
-});
+//     if (!updatedExecutive) {
+//       return res.status(404).json({ message: 'Executive not found' });
+//     }
 
+//     res.json(updatedExecutive);
+//   } catch (error) {
+//     console.error('Error updating executive:', error);
+//     res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// });
 // Admin registration route
 router.post('/register-admin', async (req, res) => {
   const { username, password } = req.body;
@@ -227,9 +230,18 @@ router.post('/register-superadmin', async (req, res) => {
 });
 router.patch('/executives/:id', async (req, res) => {
   const { id } = req.params;
-  const updateData = req.body; // This should include fields to update
+  const updateData = req.body;
+
+  // Log the incoming data for debugging
+  console.log('Update request for executive:', { id, updateData });
 
   try {
+    // Validate the id format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Executive ID' });
+    }
+
+    // Attempt to update the executive
     const executive = await Executive.findByIdAndUpdate(id, updateData, {
       new: true, // Return the updated document
       runValidators: true, // Ensure validators are run
@@ -239,12 +251,35 @@ router.patch('/executives/:id', async (req, res) => {
       return res.status(404).json({ message: 'Executive not found' });
     }
 
+    // Send the updated executive as a response
     res.json(executive);
   } catch (error) {
+    // Log the error for better debugging
     console.error('Error updating executive:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
+router.delete('/executives/:id', async (req, res) => {
+  const { id } = req.params;
 
+  try {
+    // Check if the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Executive ID format' });
+    }
+
+    // Find and delete the executive by ID
+    const deletedExecutive = await Executive.findByIdAndDelete(id);
+
+    if (!deletedExecutive) {
+      return res.status(404).json({ message: 'Executive not found' });
+    }
+
+    res.status(200).json({ message: 'Executive deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting executive:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 module.exports = router;
