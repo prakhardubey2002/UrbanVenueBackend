@@ -60,5 +60,24 @@ router.delete('/occasions/:id', async (req, res) => {
     return res.status(500).json({ message: 'Internal Server Error.' });
   }
 });
+router.patch('/occasion/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body; // Fields to update
 
+    // Find the occasion by ID and update it
+    const updatedOccasion = await Occasion.findByIdAndUpdate(id, updateData, {
+      new: true, // Return the updated document
+      runValidators: true, // Run schema validation
+    });
+
+    if (!updatedOccasion) {
+      return res.status(404).json({ error: 'Occasion not found' });
+    }
+
+    res.status(200).json({ message: 'Occasion updated successfully', occasion: updatedOccasion });
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating occasion', details: error.message });
+  }
+});
 module.exports = router;
