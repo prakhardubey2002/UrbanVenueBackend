@@ -39,12 +39,10 @@ const AddressSchema = new mongoose.Schema({
 
 // Add a details field in the farm schema to hold additional details about the farm
 const FarmSchema = new mongoose.Schema({
-  farmId: { type: String, required: true },
   address: { type: AddressSchema, required: true }, // Embedded address document
   details: {
     name: { type: String, required: true },
     phoneNumber: { type: String, required: true },
-    checkInDate: { type: Date, required: true },
     checkInTime: { type: String, required: true },
     checkOutDate: { type: Date, required: true },
     checkOutTime: { type: String, required: true },
@@ -56,10 +54,28 @@ const FarmSchema = new mongoose.Schema({
     advance: { type: Number, required: true },
     balancePayment: { type: Number, required: true },
     securityAmount: { type: Number, required: true },
-    status: { type: String, required: true, },
+    advanceCollectedBy: { type: String }, // From invoice
+    pendingCollectedBy: { type: String }, // From invoice
+    advanceMode: { type: String, default: 'cash' }, // From invoice
+    email: { type: String }, // From invoice
+    bookingPartnerName: { type: String }, // From invoice
+    bookingPartnerPhoneNumber: { type: String }, // From invoice
+    numberOfAdults: { type: Number }, // From invoice
+    numberOfKids: { type: Number }, // From invoice
+    otherServices: { type: Number }, // From invoice
+    urbanvenuecommission: { type: Number }, // From invoice
+    venue: { type: String, required: true }, // From invoice
+    termsConditions: { type: String }, // From invoice
+    eventAddOns: { type: String }, // From invoice
+    status: {
+      type: String,
+      enum: ['Canceled', 'Paid', 'Upcoming', 'Completed', 'confirmed'],
+      required: true,
+    },
   },
   events: [EventSchema],
 });
+
 
 // Ensure indexing for faster queries on event dates
 FarmSchema.index({ 'events.start': 1, 'events.end': 1 });

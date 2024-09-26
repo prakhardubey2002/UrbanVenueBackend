@@ -10,13 +10,17 @@ router.post('/invoices', async (req, res) => {
     const {
       bookingId,
       guestName,
+      email,  // Added email field
       phoneNumber,
       checkInDate,
       checkInTime,
       checkOutDate,
       checkOutTime,
-      maxPeople,
+      numberOfAdults,  // Added number of adults field
+      numberOfKids,  // Added number of kids field
       occasion,
+      bookingPartnerName,  // Added booking partner name field
+      bookingPartnerPhoneNumber,  // Added booking partner phone number field
       hostOwnerName,
       hostNumber,
       totalBooking,
@@ -28,14 +32,14 @@ router.post('/invoices', async (req, res) => {
       balancePayment,
       securityAmount,
       urbanvenuecommission,
-      venue, // This is the farm name inside details
+      venue,  // This is the farm name inside details
       addressLine1,
       addressLine2,
       country,
       citySuburb,
       state,
       zipCode,
-      showAdvanceDetails,
+      eventAddOns,  // Added event add-ons field
       status,
       pendingCollectedBy,
     } = req.body;
@@ -45,20 +49,24 @@ router.post('/invoices', async (req, res) => {
       title: occasion,
       start: `${checkInDate}T${checkInTime}`,
       end: `${checkOutDate}T${checkOutTime}`,
-      _id: bookingId, // Add bookingId to the event
+      _id: bookingId,  // Add bookingId to the event
     };
 
-    // Save the invoice
+    // Prepare the invoice data
     const invoiceData = {
       bookingId,
       guestName,
+      email,  // Added email field
       phoneNumber,
       checkInDate,
       checkInTime,
       checkOutDate,
       checkOutTime,
-      maxPeople,
+      numberOfAdults,  // Added number of adults field
+      numberOfKids,  // Added number of kids field
       occasion,
+      bookingPartnerName,  // Added booking partner name field
+      bookingPartnerPhoneNumber,  // Added booking partner phone number field
       hostOwnerName,
       hostNumber,
       totalBooking,
@@ -77,7 +85,7 @@ router.post('/invoices', async (req, res) => {
       citySuburb,
       state,
       zipCode,
-      showAdvanceDetails,
+      eventAddOns,  // Added event add-ons field
       status,
       pendingCollectedBy,
     };
@@ -91,13 +99,13 @@ router.post('/invoices', async (req, res) => {
       {
         name: state,
         'places.name': citySuburb,
-        'places.farms.details.name': venue, // Accessing farm name inside details
+        'places.farms.details.name': venue,  // Accessing farm name inside details
       },
       {
         $push: { 'places.$.farms.$[farm].events': event },
       },
       {
-        arrayFilters: [{ 'farm.details.name': venue }], // Accessing farm name inside details
+        arrayFilters: [{ 'farm.details.name': venue }],  // Accessing farm name inside details
         new: true,
       }
     );
@@ -117,6 +125,7 @@ router.post('/invoices', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 // Get all invoices
