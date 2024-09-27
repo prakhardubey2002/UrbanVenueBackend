@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
     );
 
     // Return the token and userType to the client
-    res.json({ token, userType: user.userType });
+    res.json({ token, userType: user.userType ,phoneNumber:user.phoneNumber,name:user.name});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
