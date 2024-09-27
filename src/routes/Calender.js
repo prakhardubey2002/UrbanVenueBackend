@@ -40,6 +40,14 @@ router.get('/all-farms', async (req, res) => {
           numberOfAdults: farm.details.numberOfAdults, // Updated
           numberOfKids: farm.details.numberOfKids,     // Updated
           occasion: farm.details.occasion,
+          advanceCollectedBy:farm.details.advanceCollectedBy,
+          pendingCollectedBy:farm.details.pendingCollectedBy,
+          advanceMode:farm.details.advanceMode,
+          email:farm.details.email,
+          otherServices:farm.details.otherServices,
+          urbanvenuecommission:farm.details.urbanvenuecommission,
+          termsConditions:farm.details.termsConditions,
+          eventAddOns:farm.details.eventAddOns,
           hostOwnerName: farm.details.hostOwnerName,
           hostNumber: farm.details.hostNumber,
           totalBooking: farm.details.totalBooking,
@@ -67,85 +75,70 @@ router.get('/all-farms', async (req, res) => {
 });
 
 
-router.patch('/update-farm/:farmId', async (req, res) => {
+router.patch('/update-farm/:state/:place/:farmId', async (req, res) => {
   try {
-    const { farmId } = req.params;
-    const {
-      address,
-      name,
-      phoneNumber,
-      checkInTime,
-      checkOutDate,
-      checkOutTime,
-      numberOfAdults, // Updated field
-      numberOfKids,   // Updated field
-      occasion,
-      hostOwnerName,
-      hostNumber,
-      totalBooking,
-      advance,
-      balancePayment,
-      securityAmount,
-      status,
-    } = req.body;
+    const { state, place, farmId } = req.params;
+    console.log(`Received parameters: state=${state}, place=${place}, farmId=${farmId}`);
 
-    // Ensure farm ID is provided
-    if (!farmId) {
-      console.error('Farm ID is required');
-      return res.status(400).json({ message: 'Farm ID is required' });
-    }
+    const updateFields = {};
 
-    // Build dynamic update object with only the provided fields
-    let updateFields = {};
-    
-    if (address) {
-      updateFields = {
-        ...updateFields,
-        'places.$[place].farms.$[farm].address.addressLine1': address.addressLine1,
-        'places.$[place].farms.$[farm].address.addressLine2': address.addressLine2,
-        'places.$[place].farms.$[farm].address.country': address.country,
-        'places.$[place].farms.$[farm].address.state': address.state,
-        'places.$[place].farms.$[farm].address.suburb': address.suburb,
-        'places.$[place].farms.$[farm].address.zipCode': address.zipCode,
+    // Update address if provided
+    if (req.body.address) {
+      updateFields['farms.$.address'] = {
+        addressLine1: req.body.address.addressLine1 || '',
+        addressLine2: req.body.address.addressLine2 || '',
+        country: req.body.address.country || '',
+        state: req.body.address.state || '',
+        suburb: req.body.address.suburb || '',
+        zipCode: req.body.address.zipCode || ''
       };
     }
 
-    if (name) updateFields['places.$[place].farms.$[farm].details.name'] = name;
-    if (phoneNumber) updateFields['places.$[place].farms.$[farm].details.phoneNumber'] = phoneNumber;
-    if (checkInTime) updateFields['places.$[place].farms.$[farm].details.checkInTime'] = checkInTime;
-    if (checkOutDate) updateFields['places.$[place].farms.$[farm].details.checkOutDate'] = checkOutDate;
-    if (checkOutTime) updateFields['places.$[place].farms.$[farm].details.checkOutTime'] = checkOutTime;
-    if (numberOfAdults) updateFields['places.$[place].farms.$[farm].details.numberOfAdults'] = numberOfAdults;
-    if (numberOfKids) updateFields['places.$[place].farms.$[farm].details.numberOfKids'] = numberOfKids;
-    if (occasion) updateFields['places.$[place].farms.$[farm].details.occasion'] = occasion;
-    if (hostOwnerName) updateFields['places.$[place].farms.$[farm].details.hostOwnerName'] = hostOwnerName;
-    if (hostNumber) updateFields['places.$[place].farms.$[farm].details.hostNumber'] = hostNumber;
-    if (totalBooking) updateFields['places.$[place].farms.$[farm].details.totalBooking'] = totalBooking;
-    if (advance) updateFields['places.$[place].farms.$[farm].details.advance'] = advance;
-    if (balancePayment) updateFields['places.$[place].farms.$[farm].details.balancePayment'] = balancePayment;
-    if (securityAmount) updateFields['places.$[place].farms.$[farm].details.securityAmount'] = securityAmount;
-    if (status) updateFields['places.$[place].farms.$[farm].details.status'] = status;
+    // Initialize the details object only if fields in details are provided
+    const detailsUpdate = {};
+    if (req.body.advance !== undefined) detailsUpdate['farms.$.details.advance'] = req.body.advance;
+    if (req.body.advanceCollectedBy) detailsUpdate['farms.$.details.advanceCollectedBy'] = req.body.advanceCollectedBy;
+    if (req.body.advanceMode) detailsUpdate['farms.$.details.advanceMode'] = req.body.advanceMode;
+    if (req.body.balancePayment !== undefined) detailsUpdate['farms.$.details.balancePayment'] = req.body.balancePayment;
+    if (req.body.checkInTime) detailsUpdate['farms.$.details.checkInTime'] = req.body.checkInTime;
+    if (req.body.checkOutDate) detailsUpdate['farms.$.details.checkOutDate'] = req.body.checkOutDate;
+    if (req.body.checkOutTime) detailsUpdate['farms.$.details.checkOutTime'] = req.body.checkOutTime;
+    if (req.body.email) detailsUpdate['farms.$.details.email'] = req.body.email;
+    if (req.body.eventAddOns) detailsUpdate['farms.$.details.eventAddOns'] = req.body.eventAddOns;
+    if (req.body.hostNumber) detailsUpdate['farms.$.details.hostNumber'] = req.body.hostNumber;
+    if (req.body.hostOwnerName) detailsUpdate['farms.$.details.hostOwnerName'] = req.body.hostOwnerName;
+    if (req.body.name) detailsUpdate['farms.$.details.name'] = req.body.name;
+    if (req.body.numberOfAdults !== undefined) detailsUpdate['farms.$.details.numberOfAdults'] = req.body.numberOfAdults;
+    if (req.body.numberOfKids !== undefined) detailsUpdate['farms.$.details.numberOfKids'] = req.body.numberOfKids;
+    if (req.body.occasion) detailsUpdate['farms.$.details.occasion'] = req.body.occasion;
+    if (req.body.otherServices !== undefined) detailsUpdate['farms.$.details.otherServices'] = req.body.otherServices;
+    if (req.body.pendingCollectedBy) detailsUpdate['farms.$.details.pendingCollectedBy'] = req.body.pendingCollectedBy;
+    if (req.body.phoneNumber) detailsUpdate['farms.$.details.phoneNumber'] = req.body.phoneNumber;
+    if (req.body.securityAmount !== undefined) detailsUpdate['farms.$.details.securityAmount'] = req.body.securityAmount;
+    if (req.body.status) detailsUpdate['farms.$.details.status'] = req.body.status;
+    if (req.body.termsConditions) detailsUpdate['farms.$.details.termsConditions'] = req.body.termsConditions;
+    if (req.body.totalBooking !== undefined) detailsUpdate['farms.$.details.totalBooking'] = req.body.totalBooking;
+    if (req.body.urbanvenuecommission !== undefined) detailsUpdate['farms.$.details.urbanvenuecommission'] = req.body.urbanvenuecommission;
 
-    // Find and update the farm document
+    // Combine updates
+    Object.assign(updateFields, detailsUpdate);
+
+    console.log('Update fields:', JSON.stringify(updateFields));
+
+    // Find the farm and update it
     const updatedFarm = await Calender.findOneAndUpdate(
-      { 'places.farms.details.farmId': farmId }, // Match farmId inside details
+      { 'state': state, 'place': place, 'farms.details.farmId': farmId },
       { $set: updateFields },
-      {
-        arrayFilters: [
-          { 'place.name': req.body.place }, // Match the place name if provided
-          { 'farm.details.farmId': farmId }  // Match farmId in details
-        ],
-        new: true, // Return the updated document
-        runValidators: true // Validate the update against the schema
-      }
+      { new: true, runValidators: true }
     );
 
+    console.log('Updated farm:', JSON.stringify(updatedFarm));
+
     if (!updatedFarm) {
-      console.error(`Farm with ID ${farmId} not found`);
       return res.status(404).json({ message: 'Farm not found' });
     }
 
-    // Find and return the updated farm details
+    // Return the updated farm details
     const updatedPlace = updatedFarm.places.find(place =>
       place.farms.some(farm => farm.details.farmId === farmId)
     );
@@ -153,10 +146,17 @@ router.patch('/update-farm/:farmId', async (req, res) => {
 
     res.status(200).json({ message: 'Farm updated successfully', farm: updatedFarmDetails });
   } catch (error) {
-    console.error('Error updating farm details:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Error updating farm details:', error.message);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
+
+
+
+
+
+
+
 
 
 router.get('/farms-free-by-date-range', async (req, res) => {
@@ -371,6 +371,43 @@ router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+router.get('/:state/:place/:property/details', async (req, res) => {
+  try {
+    const { state, place, property } = req.params;
+    console.log(`Received request for state: ${state}, place: ${place}, property: ${property}`);
+
+    // Find the state with the specified place and property (farm name)
+    const stateData = await Calender.findOne(
+      { 
+        name: state, 
+        'places.name': place, 
+        'places.farms.details.name': property 
+      },
+      { 'places.$': 1 } // Select only the matched place
+    );
+
+    // Check if the state and place exist
+    if (!stateData || stateData.places.length === 0) {
+      return res.status(404).json({ message: 'State or place not found' });
+    }
+
+    // Find the farm within the matched place by its details.name
+    const placeData = stateData.places[0];
+    const farm = placeData.farms.find(farm => farm.details.name === property);
+
+    // Check if the farm exists
+    if (!farm) {
+      return res.status(404).json({ message: 'Farm not found' });
+    }
+
+    // Return the entire farm object, including all its details and address
+    res.json(farm);
+  } catch (error) {
+    console.error('Error retrieving farm details:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 
 router.get('/:state/:place/:property/address', async (req, res) => {
@@ -706,6 +743,31 @@ router.post('/add-farm', async (req, res) => {
   }
 });
 
+router.delete('/farms/:stateName/:placeName/:farmId', async (req, res) => {
+  const { stateName, placeName, farmId } = req.params;
 
+  try {
+    // Find the calendar and remove the farm
+    const updatedCalendar = await Calender.findOneAndUpdate(
+      {
+        name: stateName,
+        'places.name': placeName,
+      },
+      {
+        $pull: { 'places.$.farms': { 'details.farmId': farmId } },
+      },
+      { new: true }
+    );
+
+    if (!updatedCalendar) {
+      return res.status(404).json({ error: 'Farm not found' });
+    }
+
+    return res.status(200).json({ message: 'Farm deleted successfully', updatedCalendar });
+  } catch (error) {
+    console.error('Error deleting farm:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router
