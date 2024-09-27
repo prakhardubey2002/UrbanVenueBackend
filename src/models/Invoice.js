@@ -40,6 +40,7 @@ const invoiceSchema = new mongoose.Schema({
     enum: ['Canceled', 'Paid', 'Upcoming', 'Completed'],
     required: true,
   },
+  photo: { type: String },
 });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);

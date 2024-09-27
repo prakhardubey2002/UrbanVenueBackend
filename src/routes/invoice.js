@@ -2,25 +2,43 @@ const express = require('express')
 const router = express.Router()
 const Invoice = require('../models/Invoice')
 const Calender = require('../models/Calender')
+const multer = require('multer');
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');  // Directory for storing photos
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
 // Create a new invoice
 
 // POST route to create an invoice and add the event to the farm
-router.post('/invoices', async (req, res) => {
+router.post('/invoices', upload.single('photo'), async (req, res) => {
   try {
+    const photo = req.file;
+    if (!photo) {
+      return res.status(400).json({ error: 'No photo uploaded' });
+    }
+
     const {
       bookingId,
       guestName,
-      email,  // Added email field
+      email,
       phoneNumber,
       checkInDate,
       checkInTime,
       checkOutDate,
       checkOutTime,
-      numberOfAdults,  // Added number of adults field
-      numberOfKids,  // Added number of kids field
+      numberOfAdults,
+      numberOfKids,
       occasion,
-      bookingPartnerName,  // Added booking partner name field
-      bookingPartnerPhoneNumber,  // Added booking partner phone number field
+      bookingPartnerName,
+      bookingPartnerPhoneNumber,
       hostOwnerName,
       hostNumber,
       totalBooking,
@@ -32,41 +50,44 @@ router.post('/invoices', async (req, res) => {
       balancePayment,
       securityAmount,
       urbanvenuecommission,
-      venue,  // This is the farm name inside details
+      venue, // This is the farm name inside details
       addressLine1,
       addressLine2,
       country,
       citySuburb,
       state,
       zipCode,
-      eventAddOns,  // Added event add-ons field
+      eventAddOns,
       status,
       pendingCollectedBy,
     } = req.body;
+
+    // Log the incoming request body for debugging
+    console.log('Request Body:', req.body);
 
     // Construct the event object based on the booking information
     const event = {
       title: occasion,
       start: `${checkInDate}T${checkInTime}`,
       end: `${checkOutDate}T${checkOutTime}`,
-      _id: bookingId,  // Add bookingId to the event
+      _id: bookingId, // Add bookingId to the event
     };
 
     // Prepare the invoice data
     const invoiceData = {
       bookingId,
       guestName,
-      email,  // Added email field
+      email,
       phoneNumber,
       checkInDate,
       checkInTime,
       checkOutDate,
       checkOutTime,
-      numberOfAdults,  // Added number of adults field
-      numberOfKids,  // Added number of kids field
+      numberOfAdults,
+      numberOfKids,
       occasion,
-      bookingPartnerName,  // Added booking partner name field
-      bookingPartnerPhoneNumber,  // Added booking partner phone number field
+      bookingPartnerName,
+      bookingPartnerPhoneNumber,
       hostOwnerName,
       hostNumber,
       totalBooking,
@@ -85,9 +106,10 @@ router.post('/invoices', async (req, res) => {
       citySuburb,
       state,
       zipCode,
-      eventAddOns,  // Added event add-ons field
+      eventAddOns,
       status,
       pendingCollectedBy,
+      photo: req.file ? req.file.filename : null, // Store the photo filename
     };
 
     // Save the invoice first
@@ -99,13 +121,13 @@ router.post('/invoices', async (req, res) => {
       {
         name: state,
         'places.name': citySuburb,
-        'places.farms.details.name': venue,  // Accessing farm name inside details
+        'places.farms.details.name': venue, // Accessing farm name inside details
       },
       {
         $push: { 'places.$.farms.$[farm].events': event },
       },
       {
-        arrayFilters: [{ 'farm.details.name': venue }],  // Accessing farm name inside details
+        arrayFilters: [{ 'farm.details.name': venue }], // Accessing farm name inside details
         new: true,
       }
     );
@@ -116,15 +138,32 @@ router.post('/invoices', async (req, res) => {
       return res.status(404).json({ error: 'Farm not found, invoice not saved' });
     }
 
-    // Return the saved invoice and success message
-    res.status(201).json({
-      message: 'Invoice and event created successfully',
-      invoice: savedInvoice,
+    // Check if the saved invoice exists in the database
+    const verifiedInvoice = await Invoice.findById(savedInvoice._id);
+    const verifiedCalendar = await Calender.findOne({
+      name: state,
+      'places.name': citySuburb,
+      'places.farms.details.name': venue,
     });
+
+    // Ensure both the invoice and calendar updates were successful
+    if (verifiedInvoice && verifiedCalendar) {
+      // Return the saved invoice and success message
+      return res.status(201).json({
+        message: 'Invoice and event created successfully',
+        invoice: verifiedInvoice,
+      });
+    } else {
+      // Rollback if verification fails
+      await Invoice.findByIdAndDelete(savedInvoice._id);
+      return res.status(500).json({ error: 'Failed to verify saved data' });
+    }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error creating invoice:', error.message);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
+
 
 
 
