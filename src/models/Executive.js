@@ -7,7 +7,7 @@ const executiveSchema = new mongoose.Schema({
   password: { type: String, required: true },
   phoneNumber: { type: String, required: true },
   joiningDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
+  endDate: { type: Date,  },
   status: {
     type: String,
     enum: ['Working', 'Resigned', 'Terminated'],

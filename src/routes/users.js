@@ -88,8 +88,8 @@ router.post('/register-executive', async (req, res) => {
       !userId ||
       !password ||
       !phoneNumber ||
-      !joiningDate ||
-      !endDate
+      !joiningDate 
+      
     ) {
       return res.status(400).json({ message: 'All fields are required.' });
     }

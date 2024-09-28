@@ -4,12 +4,12 @@ const bodyParser = require('body-parser')
 const cors = require('cors');
 const app = express()
 const PORT = 3000
-
+const path = require('path');
 // Middleware
 app.use(cors());
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // MongoDB Connection
 mongoose
   .connect('mongodb+srv://user:user@urbanvenue.jez4o.mongodb.net/?retryWrites=true&w=majority&appName=UrbanVenue', {

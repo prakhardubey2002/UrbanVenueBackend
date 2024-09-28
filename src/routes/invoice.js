@@ -170,12 +170,24 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
 // Get all invoices
 router.get('/invoices', async (req, res) => {
   try {
-    const invoices = await Invoice.find()
-    res.status(200).json(invoices)
+    const invoices = await Invoice.find();
+
+    // Construct base URL based on the request
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // Map through the invoices and add the full photo URL
+    const invoicesWithPhotoUrl = invoices.map(invoice => {
+      if (invoice.photo) {
+        invoice.photo = `${baseUrl}/uploads/${invoice.photo}`;
+      }
+      return invoice;
+    });
+
+    res.status(200).json(invoicesWithPhotoUrl);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
 
 // Get invoice by ID
 router.get('/invoices/:id', async (req, res) => {
@@ -217,8 +229,8 @@ router.put('/invoices/:id', async (req, res) => {
     // Update the invoice with new values
     const updatedInvoiceData = await Invoice.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true }
+      req.body, // Ensure req.body contains all the necessary fields
+      { new: true, runValidators: true } // Enforce schema validation
     );
     console.log('Updated invoice data:', updatedInvoiceData);
 
@@ -296,6 +308,7 @@ router.put('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 
