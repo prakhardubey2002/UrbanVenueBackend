@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname);
+    cb(null,file.originalname);
   }
 });
 
@@ -58,6 +58,7 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       state,
       zipCode,
       eventAddOns,
+      termsConditions,
       status,
       pendingCollectedBy,
     } = req.body;
@@ -107,6 +108,7 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       state,
       zipCode,
       eventAddOns,
+      termsConditions,
       status,
       pendingCollectedBy,
       photo: req.file ? req.file.filename : null, // Store the photo filename
@@ -168,27 +170,34 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
 
 
 // Get all invoices
+// router.get('/invoices', async (req, res) => {
+//   try {
+//     const invoices = await Invoice.find();
+
+//     // Construct base URL based on the request
+//     const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+//     // Map through the invoices and add the full photo URL
+//     const invoicesWithPhotoUrl = invoices.map(invoice => {
+//       if (invoice.photo) {
+//         invoice.photo = `${baseUrl}/uploads/${invoice.photo}`;
+//       }
+//       return invoice;
+//     });
+
+//     res.status(200).json(invoicesWithPhotoUrl);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 router.get('/invoices', async (req, res) => {
   try {
-    const invoices = await Invoice.find();
-
-    // Construct base URL based on the request
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-    // Map through the invoices and add the full photo URL
-    const invoicesWithPhotoUrl = invoices.map(invoice => {
-      if (invoice.photo) {
-        invoice.photo = `${baseUrl}/uploads/${invoice.photo}`;
-      }
-      return invoice;
-    });
-
-    res.status(200).json(invoicesWithPhotoUrl);
+    const invoices = await Invoice.find()
+    res.status(200).json(invoices)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-});
-
+})
 // Get invoice by ID
 router.get('/invoices/:id', async (req, res) => {
   try {
@@ -219,32 +228,59 @@ function convertTo24HourFormat(time12h) {
 router.put('/invoices/:id', async (req, res) => {
   try {
     // Check if the invoice exists
-    const updatedInvoice = await Invoice.findById(req.params.id);
-    if (!updatedInvoice) {
+    const existingInvoice = await Invoice.findById(req.params.id);
+    if (!existingInvoice) {
       console.log('Invoice not found');
       return res.status(404).json({ message: 'Invoice not found' });
     }
-    console.log('Invoice found:', updatedInvoice);
+    console.log('Invoice found:', existingInvoice);
 
-    // Update the invoice with new values
+    // Update the invoice with new values from the request body
     const updatedInvoiceData = await Invoice.findByIdAndUpdate(
       req.params.id,
-      req.body, // Ensure req.body contains all the necessary fields
-      { new: true, runValidators: true } // Enforce schema validation
+      req.body, // req.body should include all fields that need to be updated
+      { new: true, runValidators: true } // Enforce schema validation and return the updated document
     );
     console.log('Updated invoice data:', updatedInvoiceData);
 
     // Extract relevant fields from the updated invoice
     const {
       bookingId,
+      guestName,
+      email,                  // Added email field
+      phoneNumber,
       checkInDate,
       checkInTime,
       checkOutDate,
       checkOutTime,
+      numberOfAdults,         // Added number of adults field
+      numberOfKids,           // Added number of kids field
       occasion,
+      bookingPartnerName,     // Added booking partner name field
+      bookingPartnerPhoneNumber, // Added booking partner phone number field
+      hostOwnerName,
+      hostNumber,
+      totalBooking,
+      farmTref,               // Added farm reference field
+      otherServices,
+      advance,
+      advanceCollectedBy,
+      pendingCollectedBy,
+      advanceMode,
+      balancePayment,
+      securityAmount,
+      urbanvenuecommission,   // Added urban venue commission field
+      venue: farmName,
+      addressLine1,
+      addressLine2,
+      country,
       state,
       citySuburb: placeName,
-      venue: farmName,
+      zipCode,
+      termsConditions,        // Added terms and conditions field
+      eventAddOns,            // Added event add-ons field
+      status,                 // Enum field: ['Canceled', 'Paid', 'Upcoming', 'Completed']
+      photo,                  // Added photo field
     } = updatedInvoiceData;
 
     // Convert times to 24-hour format
@@ -308,6 +344,7 @@ router.put('/invoices/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 
