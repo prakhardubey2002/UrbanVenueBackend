@@ -371,6 +371,51 @@ router.get('/:stateName/:placeName/farms/:date', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+router.get('/:state/:property/details', async (req, res) => {
+  try {
+    const { state, property } = req.params;
+    console.log(`Received request for state: ${state}, property: ${property}`);
+
+    // Find the state with the specified property (farm name)
+    const stateData = await Calender.findOne(
+      { 
+        name: state, 
+        'places.farms.details.name': property 
+      },
+      { 'places.$': 1 } // Select only the places where farms match the property
+    );
+
+    // Check if the state and property (farm) exist
+    if (!stateData || stateData.places.length === 0) {
+      return res.status(404).json({ message: 'State or property not found' });
+    }
+
+    // Find the place(s) containing the farm with the specific details.name
+    let foundFarm = null;
+
+    // Iterate over places to find the farm with the matching property name
+    stateData.places.forEach(place => {
+      const farm = place.farms.find(farm => farm.details.name === property);
+      if (farm) {
+        foundFarm = farm;
+      }
+    });
+
+    // If no matching farm is found
+    if (!foundFarm) {
+      return res.status(404).json({ message: 'Property (farm) not found' });
+    }
+
+    // Return the found farm object
+    res.json(foundFarm);
+  } catch (error) {
+    console.error('Error retrieving farm details:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
 router.get('/:state/:place/:property/details', async (req, res) => {
   try {
     const { state, place, property } = req.params;
