@@ -3,17 +3,18 @@ const mongoose = require('mongoose');
 const invoiceSchema = new mongoose.Schema({
   bookingId: { type: String, required: true },
   guestName: { type: String, required: true },
-  email: { type: String },  // Added email field
+  email: { type: String },  
   phoneNumber: { type: String, required: true },
   checkInDate: { type: Date, required: true },
   checkInTime: { type: String, required: true },
   checkOutDate: { type: Date, required: true },
   checkOutTime: { type: String, required: true },
-  numberOfAdults: { type: Number },  // Added number of adults field
-  numberOfKids: { type: Number },  // Added number of kids field
+  numberOfAdults: { type: Number },  
+  numberOfKids: { type: Number },  
   occasion: { type: String, required: true },
-  bookingPartnerName: { type: String },  // Added booking partner name field
-  bookingPartnerPhoneNumber: { type: String },  // Added booking partner phone number field
+  bookingpartnerid: { type: String, required: true },
+  bookingPartnerName: { type: String },  
+  bookingPartnerPhoneNumber: { type: String },  
   hostOwnerName: { type: String, required: true },
   hostNumber: { type: String, required: true },
   totalBooking: { type: Number, required: true },
