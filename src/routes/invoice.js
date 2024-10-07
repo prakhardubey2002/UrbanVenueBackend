@@ -200,6 +200,87 @@ router.get('/invoices', async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+
+//booking partner parmetreised apis start
+router.get('/invoicesbybookingid/:bookingpartnerid', async (req, res) => {
+  try {
+    const bookingPartnerId = req.params.bookingpartnerid;
+    
+    // Find invoices where bookingpartnerid matches the URL parameter
+    const invoices = await Invoice.find({ bookingpartnerid: bookingPartnerId });
+
+    if (invoices.length === 0) {
+      return res.status(404).json({ message: 'No invoices found for this booking partner ID' });
+    }
+
+    res.status(200).json(invoices);
+  } catch (error) {
+    console.error('Error retrieving invoices:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+router.get('/guestsbybookingid/:bookingpartnerid', async (req, res) => {
+  try {
+    const bookingPartnerId = req.params.bookingpartnerid;
+
+    // Find all invoices for the given bookingpartnerid, and select only the guestName field
+    const guests = await Invoice.find({ bookingpartnerid: bookingPartnerId }, 'guestName');
+
+    // Create a Set to store unique guest names
+    const uniqueGuestNames = new Set(guests.map((guest) => guest.guestName));
+
+    // Convert the Set back to an array
+    const guestNamesArray = Array.from(uniqueGuestNames);
+
+    // Send the unique guest names as a response
+    res.status(200).json(guestNamesArray);
+  } catch (err) {
+    console.error('Error fetching guest names:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+router.get('/ownersbybookingid/:bookingpartnerid', async (req, res) => {
+  try {
+    const bookingPartnerId = req.params.bookingpartnerid;
+
+    // Find distinct hostOwnerName for the given bookingpartnerid
+    const ownerNames = await Invoice.distinct('hostOwnerName', { bookingpartnerid: bookingPartnerId });
+
+    res.status(200).json(ownerNames);
+  } catch (error) {
+    console.error('Error fetching owner names:', error);
+    res.status(500).json({ error: 'Failed to fetch owner names' });
+  }
+});
+router.get('/venuesbybookingid/:bookingpartnerid', async (req, res) => {
+  try {
+    const bookingPartnerId = req.params.bookingpartnerid;
+
+    // Find distinct venue for the given bookingpartnerid
+    const propertyNames = await Invoice.distinct('venue', { bookingpartnerid: bookingPartnerId });
+
+    res.status(200).json(propertyNames);
+  } catch (error) {
+    console.error('Error fetching property names:', error);
+    res.status(500).json({ error: 'Failed to fetch property names' });
+  }
+});
+router.get('/unique-phone-numbersbybookingid/:bookingpartnerid', async (req, res) => {
+  try {
+    const bookingPartnerId = req.params.bookingpartnerid;
+
+    // Find distinct phone numbers for the given bookingpartnerid
+    const phoneNumbers = await Invoice.distinct('phoneNumber', { bookingpartnerid: bookingPartnerId });
+
+    res.status(200).json(phoneNumbers);
+  } catch (error) {
+    console.error('Error fetching phone numbers:', error);
+    res.status(500).json({ message: 'Error fetching phone numbers', error });
+  }
+});
+
+//booking partner parmetreised apis  end
+
 // Get invoice by ID
 router.get('/invoices/:id', async (req, res) => {
   try {
@@ -444,45 +525,51 @@ router.get('/search', async (req, res) => {
       selectedStatus,
       startDate,
       endDate,
-      selectedCategory, // New category filter
-    } = req.query
+      selectedCategory,  // New category filter
+      bookingpartnerid   // Add bookingpartnerid in the query parameters
+    } = req.query;
 
-    let filter = {}
-    let missingParams = []
+    let filter = {};
+    let missingParams = [];
 
     // Build filter object dynamically based on provided query parameters
     if (selectedGuest && selectedGuest.trim()) {
-      filter.guestName = selectedGuest.trim()
+      filter.guestName = selectedGuest.trim();
     }
 
     if (selectedOwner && selectedOwner.trim()) {
-      filter.hostOwnerName = selectedOwner.trim()
+      filter.hostOwnerName = selectedOwner.trim();
     }
 
     if (selectedProperty && selectedProperty.trim()) {
-      filter.venue = selectedProperty.trim()
+      filter.venue = selectedProperty.trim();
     }
 
     if (selectedPhoneNumber && selectedPhoneNumber.trim()) {
-      filter.phoneNumber = selectedPhoneNumber.trim()
+      filter.phoneNumber = selectedPhoneNumber.trim();
     }
 
     if (selectedStatus && selectedStatus.trim()) {
-      filter.status = selectedStatus.trim()
+      filter.status = selectedStatus.trim();
     }
 
     // Category filtering
     if (selectedCategory && selectedCategory.trim()) {
-      filter.occasion = selectedCategory.trim()
+      filter.occasion = selectedCategory.trim();
+    }
+
+    // Filter by bookingpartnerid
+    if (bookingpartnerid && bookingpartnerid.trim()) {
+      filter.bookingpartnerid = bookingpartnerid.trim();
     }
 
     // Date filtering (inclusive of the date, ignores time)
     if (startDate && endDate) {
-      const start = new Date(startDate)
-      start.setUTCHours(0, 0, 0, 0) // Set time to midnight to ignore the time component
+      const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0); // Set time to midnight to ignore the time component
 
-      const end = new Date(endDate)
-      end.setUTCHours(23, 59, 59, 999) // Set time to end of day to ensure inclusivity
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999); // Set time to end of day to ensure inclusivity
 
       // Check if either checkInDate or checkOutDate falls within the range
       filter.$or = [
@@ -492,31 +579,31 @@ router.get('/search', async (req, res) => {
           checkInDate: { $lte: end }, // Check if the checkInDate is before the endDate
           checkOutDate: { $gte: start }, // Check if the checkOutDate is after the startDate
         },
-      ]
+      ];
     } else {
-      missingParams.push('Start Date and End Date')
+      missingParams.push('Start Date and End Date');
     }
 
     // Log missing parameters
     if (missingParams.length > 0) {
-      console.log(`Missing Parameters: ${missingParams.join(', ')}`)
+      console.log(`Missing Parameters: ${missingParams.join(', ')}`);
     }
 
     // Find invoices based on the constructed filter object
-    const invoices = await Invoice.find(filter)
+    const invoices = await Invoice.find(filter);
 
     // Return the filtered invoices
     res.status(200).json({
       success: true,
       data: invoices,
-    })
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-    })
+    });
   }
-})
+});
 
 module.exports = router
