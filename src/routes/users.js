@@ -18,6 +18,16 @@ router.get('/executives', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+router.get('/admin', async (req, res) => {
+  try {
+    const admin = await Admin.find({});
+    res.json(admin);
+  } catch (error) {
+    console.error('Error retrieving executives:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 // Login route
 
 router.post('/login', async (req, res) => {
@@ -287,4 +297,58 @@ router.delete('/executives/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+router.patch('/admin/:id', async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  // Log the incoming data for debugging
+  console.log('Update request for admin:', { id, updateData });
+
+  try {
+    // Validate the id format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Admin ID' });
+    }
+
+    // Attempt to update the admin
+    const admin = await Admin.findByIdAndUpdate(id, updateData, {
+      new: true, // Return the updated document
+      runValidators: true, // Ensure validators are run
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    // Send the updated admin as a response
+    res.json(admin);
+  } catch (error) {
+    // Log the error for better debugging
+    console.error('Error updating admin:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+router.delete('/admin/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Check if the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Admin ID format' });
+    }
+
+    // Find and delete the admin by ID
+    const deletedAdmin = await Admin.findByIdAndDelete(id);
+
+    if (!deletedAdmin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    res.status(200).json({ message: 'Admin deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;
