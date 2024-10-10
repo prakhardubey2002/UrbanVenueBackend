@@ -627,6 +627,21 @@ router.get('/search', async (req, res) => {
     });
   }
 });
+router.get('owner/:hostOwnerName', async (req, res) => {
+  try {
+    const hostOwnerName = req.params.hostOwnerName;
+    
+    // Query the database for invoices with the provided hostOwnerName
+    const invoices = await Invoice.find({ hostOwnerName });
+    
+    if (invoices.length === 0) {
+      return res.status(404).json({ message: 'No invoices found for this owner.' });
+    }
 
+    res.status(200).json(invoices);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving invoices', error });
+  }
+});
 
 module.exports = router
