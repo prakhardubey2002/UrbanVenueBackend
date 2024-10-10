@@ -526,7 +526,9 @@ router.get('/search', async (req, res) => {
       startDate,
       endDate,
       selectedCategory,  // New category filter
-      bookingpartnerid   // Add bookingpartnerid in the query parameters
+      bookingpartnerid,  // Add bookingpartnerid in the query parameters
+      totalBookingValue, // Total booking value
+      totalBookingOperator, // Comparison operator for totalBooking: 'gte', 'lte', 'eq'
     } = req.query;
 
     let filter = {};
@@ -561,6 +563,26 @@ router.get('/search', async (req, res) => {
     // Filter by bookingpartnerid
     if (bookingpartnerid && bookingpartnerid.trim()) {
       filter.bookingpartnerid = bookingpartnerid.trim();
+    }
+
+    // Total Booking filter
+    if (totalBookingValue && totalBookingOperator) {
+      const bookingValue = parseFloat(totalBookingValue); // Convert to number
+      if (!isNaN(bookingValue)) {
+        switch (totalBookingOperator) {
+          case 'gte':
+            filter.totalBooking = { $gte: bookingValue }; // Greater than or equal to
+            break;
+          case 'lte':
+            filter.totalBooking = { $lte: bookingValue }; // Less than or equal to
+            break;
+          case 'eq':
+            filter.totalBooking = { $eq: bookingValue }; // Equal to
+            break;
+          default:
+            break;
+        }
+      }
     }
 
     // Date filtering (inclusive of the date, ignores time)
@@ -605,5 +627,6 @@ router.get('/search', async (req, res) => {
     });
   }
 });
+
 
 module.exports = router

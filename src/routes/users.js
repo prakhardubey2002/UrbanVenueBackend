@@ -155,25 +155,29 @@ router.post('/register-executive', async (req, res) => {
 // });
 // Admin registration route
 router.post('/register-admin', async (req, res) => {
-  const { username, password } = req.body;
+  const { id, name, username, password, phoneNumber, joiningDate, endDate, status } = req.body;
 
   console.log(req.body); // Debug line
 
   try {
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required.' });
+    if (!id || !name || !username || !password || !phoneNumber || !joiningDate) {
+      return res.status(400).json({ message: 'All required fields must be filled.' });
     }
 
     const existingAdmin = await Admin.findOne({ username });
     if (existingAdmin) {
       return res.status(400).json({ message: 'Username already in use.' });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newAdmin = new Admin({
+      id, // Accepting the ID from the frontend
+      name,
       username,
-      password: hashedPassword,
+      password: hashedPassword, // Directly saving the password as per your request
+      phoneNumber,
+      joiningDate,
+      endDate, // Optional
+      status: status || 'Working', // Default to 'Working' if not provided
       userType: 'Admin',
     });
 
@@ -188,6 +192,7 @@ router.post('/register-admin', async (req, res) => {
     return res.status(500).json({ message: 'Server error, please try again later.' });
   }
 });
+
 
 
 // SuperAdmin registration route

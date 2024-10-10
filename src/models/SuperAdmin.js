@@ -9,6 +9,7 @@ const superadminSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    
     userType: {
         type: String,
         enum: ['SuperAdmin'],  // Three user types
