@@ -42,6 +42,9 @@ const invoiceSchema = new mongoose.Schema({
     required: true,
   },
   photo: { type: String },
+  surplus: { type: String,required: true },
+  deficit: { type: String,required: true },
+  fullcloser :{type: String,required: true}
 });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
