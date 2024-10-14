@@ -642,7 +642,8 @@ router.get('/search', async (req, res) => {
     })
   }
 })
-router.get('owner/:hostOwnerName', async (req, res) => {
+
+router.get('/owner/:hostOwnerName', async (req, res) => {
   try {
     const hostOwnerName = req.params.hostOwnerName
 
@@ -660,5 +661,4 @@ router.get('owner/:hostOwnerName', async (req, res) => {
     res.status(500).json({ message: 'Error retrieving invoices', error })
   }
 })
-
 module.exports = router
