@@ -661,4 +661,21 @@ router.get('/owner/:hostOwnerName', async (req, res) => {
     res.status(500).json({ message: 'Error retrieving invoices', error })
   }
 })
+router.get('/count/:venue', async (req, res) => {
+  const { venue } = req.params;
+  
+  try {
+    // Count the invoices matching the venue
+    const invoiceCount = await Invoice.countDocuments({ venue });
+
+    // Respond with the count
+    res.status(200).json({
+      venue,
+      invoiceCount,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'An error occurred while counting invoices.' });
+  }
+});
 module.exports = router
