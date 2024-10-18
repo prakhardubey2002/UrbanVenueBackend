@@ -65,6 +65,7 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       surplus,
       deficit,
       fullcloser,
+      maplink
     } = req.body
 
     // Log the incoming request body for debugging
@@ -120,6 +121,7 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       surplus,
       deficit,
       fullcloser,
+      maplink
     }
 
     // Save the invoice first

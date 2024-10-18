@@ -677,6 +677,7 @@ router.post('/add-farm', async (req, res) => {
       eventAddOns,
       status,
       farmTref, // Added farmTref
+      maplink
     } = farmDetails;
 
     if (!farmId || !name || !address) {
@@ -730,6 +731,7 @@ router.post('/add-farm', async (req, res) => {
         termsConditions,
         eventAddOns,
         status,
+        maplink
       },
       farmTref, // Added farmTref
       events: [initialEvent],

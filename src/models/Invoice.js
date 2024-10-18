@@ -35,6 +35,7 @@ const invoiceSchema = new mongoose.Schema({
   citySuburb: { type: String },
   zipCode: { type: String },
   termsConditions: { type: String },
+  maplink: { type: String },
   eventAddOns: { type: String },  // Added event add-ons field
   status: {
     type: String,

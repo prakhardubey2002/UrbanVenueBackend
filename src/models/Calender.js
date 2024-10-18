@@ -68,6 +68,7 @@ const FarmSchema = new mongoose.Schema({
     urbanvenuecommission: { type: Number }, // From invoice
     termsConditions: { type: String }, // From invoice
     eventAddOns: { type: String }, // From invoice
+    maplink:{ type: String },
     status: {
       type: String,
       enum: ['Canceled', 'Paid', 'Upcoming', 'Completed', 'confirmed'],
