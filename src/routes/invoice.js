@@ -65,7 +65,9 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       surplus,
       deficit,
       fullcloser,
-      maplink
+      maplink,
+      cancellledby,
+      cancelreason,
     } = req.body
 
     // Log the incoming request body for debugging
@@ -121,7 +123,9 @@ router.post('/invoices', upload.single('photo'), async (req, res) => {
       surplus,
       deficit,
       fullcloser,
-      maplink
+      maplink,
+      cancellledby,
+      cancelreason,
     }
 
     // Save the invoice first
@@ -346,7 +350,7 @@ router.put('/invoices/:id', async (req, res) => {
       { new: true, runValidators: true } // Enforce schema validation and return the updated document
     )
     console.log('Updated invoice data:', updatedInvoiceData)
-
+ 
     // Extract relevant fields from the updated invoice
     const {
       bookingId,
@@ -385,8 +389,42 @@ router.put('/invoices/:id', async (req, res) => {
       eventAddOns, // Added event add-ons field
       status, // Enum field: ['Canceled', 'Paid', 'Upcoming', 'Completed']
       photo, // Added photo field
+      cancellledby,
+      cancelreason,
     } = updatedInvoiceData
+   // If the status is 'Cancelled', delete the event from the calendar
+   if (status === 'Cancelled') {
+    const updatedCalendar = await Calender.findOneAndUpdate(
+      {
+        name: state,
+        'places.name': placeName,
+        'places.farms.details.name': farmName,
+      },
+      {
+        $pull: {
+          'places.$.farms.$[farm].events': { _id: bookingId },
+        },
+      },
+      {
+        arrayFilters: [{ 'farm.details.name': farmName }],
+        new: true,
+      }
+    )
 
+    if (!updatedCalendar) {
+      console.log('Calendar event not found or failed to delete')
+      return res
+        .status(404)
+        .json({ error: 'Calendar event not found or failed to delete' })
+    }
+
+    console.log('Deleted calendar event:', updatedCalendar)
+
+    return res.status(200).json({
+      message: 'Invoice updated and event deleted successfully',
+      invoice: updatedInvoiceData,
+    })
+  }
     // Convert times to 24-hour format
     const checkInTime24 = convertTo24HourFormat(checkInTime)
     const checkOutTime24 = convertTo24HourFormat(checkOutTime)
@@ -664,20 +702,22 @@ router.get('/owner/:hostOwnerName', async (req, res) => {
   }
 })
 router.get('/count/:venue', async (req, res) => {
-  const { venue } = req.params;
-  
+  const { venue } = req.params
+
   try {
     // Count the invoices matching the venue
-    const invoiceCount = await Invoice.countDocuments({ venue });
+    const invoiceCount = await Invoice.countDocuments({ venue })
 
     // Respond with the count
     res.status(200).json({
       venue,
       invoiceCount,
-    });
+    })
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'An error occurred while counting invoices.' });
+    console.error(error)
+    res
+      .status(500)
+      .json({ error: 'An error occurred while counting invoices.' })
   }
-});
+})
 module.exports = router

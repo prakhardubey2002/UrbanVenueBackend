@@ -71,7 +71,7 @@ const FarmSchema = new mongoose.Schema({
     maplink:{ type: String },
     status: {
       type: String,
-      enum: ['Canceled', 'Paid', 'Upcoming', 'Completed', 'confirmed'],
+      enum: ['Cancelled', 'Paid', 'Upcoming', 'Completed', 'confirmed'],
       required: true,
     },
   },

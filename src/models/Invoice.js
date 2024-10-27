@@ -1,20 +1,20 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const invoiceSchema = new mongoose.Schema({
   bookingId: { type: String, required: true },
   guestName: { type: String, required: true },
-  email: { type: String },  
+  email: { type: String },
   phoneNumber: { type: String, required: true },
   checkInDate: { type: Date, required: true },
   checkInTime: { type: String, required: true },
   checkOutDate: { type: Date, required: true },
   checkOutTime: { type: String, required: true },
-  numberOfAdults: { type: Number },  
-  numberOfKids: { type: Number },  
+  numberOfAdults: { type: Number },
+  numberOfKids: { type: Number },
   occasion: { type: String, required: true },
   bookingpartnerid: { type: String, required: true },
-  bookingPartnerName: { type: String },  
-  bookingPartnerPhoneNumber: { type: String },  
+  bookingPartnerName: { type: String },
+  bookingPartnerPhoneNumber: { type: String },
   hostOwnerName: { type: String, required: true },
   hostNumber: { type: String, required: true },
   totalBooking: { type: Number, required: true },
@@ -36,17 +36,19 @@ const invoiceSchema = new mongoose.Schema({
   zipCode: { type: String },
   termsConditions: { type: String },
   maplink: { type: String },
-  eventAddOns: { type: String },  // Added event add-ons field
+  eventAddOns: { type: String }, // Added event add-ons field
   status: {
     type: String,
-    enum: ['Canceled', 'Paid', 'Upcoming', 'Completed'],
+    enum: ['Cancelled', 'Paid', 'Upcoming', 'Completed'],
     required: true,
   },
+  cancellledby: { type: String },
+  cancelreason: { type: String },
   photo: { type: String },
-  surplus: { type: String,required: true },
-  deficit: { type: String,required: true },
-  fullcloser :{type: String,required: true}
-});
+  surplus: { type: String, required: true },
+  deficit: { type: String, required: true },
+  fullcloser: { type: String, required: true },
+})
 
-const Invoice = mongoose.model('Invoice', invoiceSchema);
-module.exports = Invoice;
+const Invoice = mongoose.model('Invoice', invoiceSchema)
+module.exports = Invoice
