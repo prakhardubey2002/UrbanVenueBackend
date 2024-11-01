@@ -6,10 +6,14 @@ const app = express()
 const PORT = 9000
 const path = require('path');
 // Middleware
-app.use(cors());
+// app.use(cors());
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(cors({
+  origin: '*',  // Replace with your frontend's URL
+}));
+
 // MongoDB Connection
 mongoose
   .connect('mongodb+srv://user:user@urbanvenue.jez4o.mongodb.net/?retryWrites=true&w=majority&appName=UrbanVenue', {
@@ -21,13 +25,13 @@ mongoose
 
 // Routes
 const userRoutes = require('./src/routes/users')
-const bookRoutes =require('./src/routes/booking')
+const bookRoutes = require('./src/routes/booking')
 const calenderRoutes = require('./src/routes/Calender')
 const invoiceRoutes = require('./src/routes/invoice')
 const occasionRoutes = require('./src/routes/occasion')
 app.use('/', userRoutes)
-app.use('/',bookRoutes)
-app.use('/api/calender',calenderRoutes)
+app.use('/', bookRoutes)
+app.use('/api/calender', calenderRoutes)
 app.use('/api/invoices', invoiceRoutes);
 app.use('/occasion', occasionRoutes);
 app.get('/', (req, res) => {
