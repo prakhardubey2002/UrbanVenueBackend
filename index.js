@@ -10,9 +10,22 @@ const path = require('path');
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(cors({
-  origin: '*',  // Replace with your frontend's URL
-}));
+
+
+// app.use(cors({
+//   origin: '*',  // Replace with your frontend's URL
+// }));
+
+// Configure CORS options
+const corsOptions = {
+  origin: 'http://localhost:5173', // Allow only this origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+  credentials: true, // Enable cookies and other credentials if needed
+};
+
+// Enable CORS with the configured options
+app.use(cors(corsOptions));
 
 // MongoDB Connection
 mongoose
