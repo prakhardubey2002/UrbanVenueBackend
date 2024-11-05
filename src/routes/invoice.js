@@ -221,10 +221,9 @@ router.get('/invoicesbybookingid/:bookingpartnerid', async (req, res) => {
     const invoices = await Invoice.find({ bookingpartnerid: bookingPartnerId })
 
     if (invoices.length === 0) {
-      return res
-        .status(404)
-        .json({ message: 'No invoices found for this booking partner ID' })
+      return res.status(200).json([]);
     }
+    
 
     res.status(200).json(invoices)
   } catch (error) {
