@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Executive = require('../models/Executive');
 const Admin = require('../models/Admin');
-const Superadmin = require('../models/Superadmin');
+const Superadmin = require('../models/SuperAdmin');
 const { default: mongoose } = require('mongoose');
 const router = express.Router();
 
