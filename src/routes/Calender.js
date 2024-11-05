@@ -63,7 +63,10 @@ router.get('/all-farms', async (req, res) => {
 
     // If no farms are found, return a 404 response
     if (farmDetails.length === 0) {
-      return res.status(404).json({ message: 'No farms found' });
+      // return res.status(404).json({ message: 'No farms found' });
+      
+        return res.status(200).json([]);
+      
     }
 
     // Send the farm details
