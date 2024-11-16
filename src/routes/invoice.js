@@ -21,9 +21,9 @@ const upload = multer({ storage: storage })
 router.post('/invoices', upload.single('photo'), async (req, res) => {
   try {
     const photo = req.file
-    if (!photo) {
-      return res.status(400).json({ error: 'No photo uploaded' })
-    }
+    // if (!photo) {
+    //   return res.status(400).json({ error: 'No photo uploaded' })
+    // }
 
     const {
       bookingId,
