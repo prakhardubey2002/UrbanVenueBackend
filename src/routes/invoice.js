@@ -491,15 +491,58 @@ router.put('/invoices/:id', async (req, res) => {
 // Delete invoice
 router.delete('/invoices/:id', async (req, res) => {
   try {
-    const deletedInvoice = await Invoice.findByIdAndDelete(req.params.id)
+    // Find and delete the invoice
+    const deletedInvoice = await Invoice.findByIdAndDelete(req.params.id);
     if (!deletedInvoice) {
-      return res.status(404).json({ message: 'Invoice not found' })
+      return res.status(404).json({ message: 'Invoice not found' });
     }
-    res.status(200).json({ message: 'Invoice deleted' })
+
+    console.log('Deleted invoice:', deletedInvoice);
+
+    // Extract necessary fields from the deleted invoice
+    const {
+      bookingId,
+      state,
+      placeName,
+      venue: farmName, // Ensure this maps correctly to the calendar schema
+    } = deletedInvoice;
+
+    // Remove the event from the calendar
+    const updatedCalendar = await Calender.findOneAndUpdate(
+      {
+        name: state,
+        'places.name': placeName,
+        'places.farms.details.name': farmName,
+      },
+      {
+        $pull: {
+          'places.$.farms.$[farm].events': { _id: bookingId },
+        },
+      },
+      {
+        arrayFilters: [{ 'farm.details.name': farmName }],
+        new: true,
+      }
+    );
+
+    if (!updatedCalendar) {
+      console.log('Calendar event not found or failed to delete');
+      return res
+        .status(404)
+        .json({ error: 'Calendar event not found or failed to delete' });
+    }
+
+    console.log('Deleted calendar event:', updatedCalendar);
+
+    res.status(200).json({
+      message: 'Invoice and associated calendar event deleted successfully',
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Error deleting the invoice:', error.message);
+    res.status(500).json({ error: error.message });
   }
-})
+});
+
 router.get('/guests', async (req, res) => {
   try {
     const guests = await Invoice.find({}, 'guestName')
