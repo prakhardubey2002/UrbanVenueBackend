@@ -26,7 +26,7 @@ router.get('/all-farms', async (req, res) => {
     });
 
     // Map the data to get farm details
-    const farmDetails = allStates.flatMap(state => 
+    const farmDetails = allStates.flatMap(state =>
       state.places.flatMap(place =>
         place.farms.map(farm => ({
           state: state.name,
@@ -40,14 +40,14 @@ router.get('/all-farms', async (req, res) => {
           numberOfAdults: farm.details.numberOfAdults, // Updated
           numberOfKids: farm.details.numberOfKids,     // Updated
           occasion: farm.details.occasion,
-          advanceCollectedBy:farm.details.advanceCollectedBy,
-          pendingCollectedBy:farm.details.pendingCollectedBy,
-          advanceMode:farm.details.advanceMode,
-          email:farm.details.email,
-          otherServices:farm.details.otherServices,
-          urbanvenuecommission:farm.details.urbanvenuecommission,
-          termsConditions:farm.details.termsConditions,
-          eventAddOns:farm.details.eventAddOns,
+          advanceCollectedBy: farm.details.advanceCollectedBy,
+          pendingCollectedBy: farm.details.pendingCollectedBy,
+          advanceMode: farm.details.advanceMode,
+          email: farm.details.email,
+          otherServices: farm.details.otherServices,
+          urbanvenuecommission: farm.details.urbanvenuecommission,
+          termsConditions: farm.details.termsConditions,
+          eventAddOns: farm.details.eventAddOns,
           hostOwnerName: farm.details.hostOwnerName,
           hostNumber: farm.details.hostNumber,
           totalBooking: farm.details.totalBooking,
@@ -64,9 +64,9 @@ router.get('/all-farms', async (req, res) => {
     // If no farms are found, return a 404 response
     if (farmDetails.length === 0) {
       // return res.status(404).json({ message: 'No farms found' });
-      
-        return res.status(200).json([]);
-      
+
+      return res.status(200).json([]);
+
     }
 
     // Send the farm details
@@ -78,81 +78,90 @@ router.get('/all-farms', async (req, res) => {
 });
 
 
-router.patch('/update-farm/:state/:place/:farmId', async (req, res) => {
+router.patch('/update-farm/:farmId', async (req, res) => {
   try {
     const { state, place, farmId } = req.params;
+    console.log("====>>>>");
     console.log(`Received parameters: state=${state}, place=${place}, farmId=${farmId}`);
 
     const updateFields = {};
 
     // Update address if provided
     if (req.body.address) {
+      console.log(`Received ===>>> : state=${state}, place=${place}, farmId=${farmId}`);
+
       updateFields['farms.$.address'] = {
+
         addressLine1: req.body.address.addressLine1 || '',
         addressLine2: req.body.address.addressLine2 || '',
         country: req.body.address.country || '',
         state: req.body.address.state || '',
         suburb: req.body.address.suburb || '',
-        zipCode: req.body.address.zipCode || ''
+        zipCode: req.body.address.zipCode || '',
       };
     }
 
-    // Initialize the details object only if fields in details are provided
-    const detailsUpdate = {};
-    if (req.body.advance !== undefined) detailsUpdate['farms.$.details.advance'] = req.body.advance;
-    if (req.body.advanceCollectedBy) detailsUpdate['farms.$.details.advanceCollectedBy'] = req.body.advanceCollectedBy;
-    if (req.body.advanceMode) detailsUpdate['farms.$.details.advanceMode'] = req.body.advanceMode;
-    if (req.body.balancePayment !== undefined) detailsUpdate['farms.$.details.balancePayment'] = req.body.balancePayment;
-    if (req.body.checkInTime) detailsUpdate['farms.$.details.checkInTime'] = req.body.checkInTime;
-    if (req.body.checkOutDate) detailsUpdate['farms.$.details.checkOutDate'] = req.body.checkOutDate;
-    if (req.body.checkOutTime) detailsUpdate['farms.$.details.checkOutTime'] = req.body.checkOutTime;
-    if (req.body.email) detailsUpdate['farms.$.details.email'] = req.body.email;
-    if (req.body.eventAddOns) detailsUpdate['farms.$.details.eventAddOns'] = req.body.eventAddOns;
-    if (req.body.hostNumber) detailsUpdate['farms.$.details.hostNumber'] = req.body.hostNumber;
-    if (req.body.hostOwnerName) detailsUpdate['farms.$.details.hostOwnerName'] = req.body.hostOwnerName;
-    if (req.body.name) detailsUpdate['farms.$.details.name'] = req.body.name;
-    if (req.body.numberOfAdults !== undefined) detailsUpdate['farms.$.details.numberOfAdults'] = req.body.numberOfAdults;
-    if (req.body.numberOfKids !== undefined) detailsUpdate['farms.$.details.numberOfKids'] = req.body.numberOfKids;
-    if (req.body.occasion) detailsUpdate['farms.$.details.occasion'] = req.body.occasion;
-    if (req.body.otherServices !== undefined) detailsUpdate['farms.$.details.otherServices'] = req.body.otherServices;
-    if (req.body.pendingCollectedBy) detailsUpdate['farms.$.details.pendingCollectedBy'] = req.body.pendingCollectedBy;
-    if (req.body.phoneNumber) detailsUpdate['farms.$.details.phoneNumber'] = req.body.phoneNumber;
-    if (req.body.securityAmount !== undefined) detailsUpdate['farms.$.details.securityAmount'] = req.body.securityAmount;
-    if (req.body.status) detailsUpdate['farms.$.details.status'] = req.body.status;
-    if (req.body.termsConditions) detailsUpdate['farms.$.details.termsConditions'] = req.body.termsConditions;
-    if (req.body.totalBooking !== undefined) detailsUpdate['farms.$.details.totalBooking'] = req.body.totalBooking;
-    if (req.body.urbanvenuecommission !== undefined) detailsUpdate['farms.$.details.urbanvenuecommission'] = req.body.urbanvenuecommission;
+    // Update details if provided
+    const document = await Calender.findOne({
+      'places.farms.details.farmId': farmId, // Match the farmId in the farms array
+    });
 
-    // Combine updates
-    Object.assign(updateFields, detailsUpdate);
-
-    console.log('Update fields:', JSON.stringify(updateFields));
-
-    // Find the farm and update it
-    const updatedFarm = await Calender.findOneAndUpdate(
-      { 'state': state, 'place': place, 'farms.details.farmId': farmId },
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    );
-
-    console.log('Updated farm:', JSON.stringify(updatedFarm));
-
-    if (!updatedFarm) {
-      return res.status(404).json({ message: 'Farm not found' });
+    if (!document) {
+      throw new Error('Farm not found');
     }
 
-    // Return the updated farm details
-    const updatedPlace = updatedFarm.places.find(place =>
+    // Find the place and farm indexes
+    const placeIndex = document.places.findIndex(place =>
       place.farms.some(farm => farm.details.farmId === farmId)
     );
-    const updatedFarmDetails = updatedPlace.farms.find(farm => farm.details.farmId === farmId);
 
-    res.status(200).json({ message: 'Farm updated successfully', farm: updatedFarmDetails });
+    const farmIndex = document.places[placeIndex].farms.findIndex(
+      farm => farm.details.farmId === farmId
+    );
+
+    if (placeIndex === -1 || farmIndex === -1) {
+      throw new Error('Indexes not found');
+    }
+
+
+
+    // Example: Loop through req.body fields and add updates dynamically
+    Object.entries(req.body).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields[`places.${placeIndex}.farms.${farmIndex}.details.${key}`] = value;
+      }
+    });
+
+    // Update the document
+   const updatedFarm = await Calender.findOneAndUpdate(
+      { _id: document._id },
+      { $set: updateFields }
+    );
+
+    console.log('Updated Fields:', updateFields);
+
+
+
+
+
+
+    // Extract and return the updated farm details
+    const updatedPlace = updatedFarm.places.find((p) =>
+      p.farms.some((farm) => farm.details.farmId === farmId)
+    );
+    const updatedFarmDetails = updatedPlace.farms.find((farm) => farm.details.farmId === farmId);
+
+    res.status(200).json({
+      message: 'Farm updated successfully',
+      farm: updatedFarmDetails,
+    });
   } catch (error) {
     console.error('Error updating farm details:', error.message);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
+
+
 
 
 
@@ -381,9 +390,9 @@ router.get('/:state/:property/details', async (req, res) => {
 
     // Find the state with the specified property (farm name)
     const stateData = await Calender.findOne(
-      { 
-        name: state, 
-        'places.farms.details.name': property 
+      {
+        name: state,
+        'places.farms.details.name': property
       },
       { 'places.$': 1 } // Select only the places where farms match the property
     );
@@ -426,10 +435,10 @@ router.get('/:state/:place/:property/details', async (req, res) => {
 
     // Find the state with the specified place and property (farm name)
     const stateData = await Calender.findOne(
-      { 
-        name: state, 
-        'places.name': place, 
-        'places.farms.details.name': property 
+      {
+        name: state,
+        'places.name': place,
+        'places.farms.details.name': property
       },
       { 'places.$': 1 } // Select only the matched place
     );
@@ -465,10 +474,10 @@ router.get('/:state/:place/:property/address', async (req, res) => {
 
     // Find the state with the specified place and farm
     const stateData = await Calender.findOne(
-      { 
-        name: state, 
-        'places.name': place, 
-        'places.farms.details.name': property 
+      {
+        name: state,
+        'places.name': place,
+        'places.farms.details.name': property
       },
       { 'places.$': 1 } // Select only the matched place
     );
@@ -500,12 +509,12 @@ router.post('/add-event', async (req, res) => {
   const { state, placeName, farmName, event } = req.body;
 
   try {
-    
+
     if (!state || !placeName || !farmName || !event || !event.title || !event.start || !event.end) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-  
+
     const eventStartDate = new Date(event.start);
     const eventEndDate = new Date(event.end);
 
@@ -513,23 +522,23 @@ router.post('/add-event', async (req, res) => {
       return res.status(400).json({ error: 'Invalid date format' });
     }
 
-    
+
     const updatedCalender = await Calender.findOneAndUpdate(
-      { 
+      {
         name: state,
         'places.name': placeName,
-        'places.farms.name': farmName 
+        'places.farms.name': farmName
       },
-      { 
-        $push: { 'places.$.farms.$[farm].events': event } 
+      {
+        $push: { 'places.$.farms.$[farm].events': event }
       },
-      { 
+      {
         arrayFilters: [{ 'farm.name': farmName }],
-        new: true 
+        new: true
       }
     );
 
-    
+
     if (!updatedCalender) {
       return res.status(404).json({ error: 'State, place, or farm not found' });
     }
@@ -571,23 +580,23 @@ router.put('/update-event', async (req, res) => {
         name: state,
         'places.name': placeName,
         'places.farms.name': farmName,
-        'places.farms.events._id': eventId 
+        'places.farms.events._id': eventId
       },
       {
         $set: {
-          'places.$.farms.$[farm].events.$[event]': updatedEvent 
+          'places.$.farms.$[farm].events.$[event]': updatedEvent
         }
       },
       {
         arrayFilters: [
           { 'farm.name': farmName },
-          { 'event._id': eventId } 
+          { 'event._id': eventId }
         ],
-        new: true 
+        new: true
       }
     );
 
-   
+
     if (!updatedCalender) {
       return res.status(404).json({ error: 'State, place, farm, or event not found' });
     }
@@ -707,7 +716,7 @@ router.post('/add-farm', async (req, res) => {
     let state = await Calender.findOne({ name: stateName });
 
     const newFarm = {
-      
+
       address,
       details: {
         name,
