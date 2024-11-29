@@ -26,7 +26,7 @@ const invoiceSchema = new mongoose.Schema({
   advanceMode: { type: String, default: 'cash' },
   balancePayment: { type: Number, required: true },
   securityAmount: { type: Number },
-  urbanvenuecommission: { type: Number },
+  urbanvenuecommission: { type: Number, default: 0 },
   venue: { type: String, required: true },
   addressLine1: { type: String },
   addressLine2: { type: String },
