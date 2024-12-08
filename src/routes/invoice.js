@@ -503,7 +503,7 @@ router.delete('/invoices/:id', async (req, res) => {
     const {
       bookingId,
       state,
-      placeName,
+      citySuburb:placeName,
       venue: farmName, // Ensure this maps correctly to the calendar schema
     } = deletedInvoice;
 
@@ -513,6 +513,7 @@ router.delete('/invoices/:id', async (req, res) => {
         name: state,
         'places.name': placeName,
         'places.farms.details.name': farmName,
+        
       },
       {
         $pull: {
@@ -622,73 +623,97 @@ router.get('/search', async (req, res) => {
       selectedStatus,
       startDate,
       endDate,
-      selectedCategory, // New category filter
-      bookingpartnerid, // Add bookingpartnerid in the query parameters
-      totalBookingValue, // Total booking value
-      totalBookingOperator, // Comparison operator for totalBooking: 'gte', 'lte', 'eq'
-    } = req.query
+      selectedCategory,
+      bookingpartnerid,
+      totalBookingValue,
+      totalBookingOperator,
+      bookingId,          // Add bookingId
+      bookingPartnerName, // Add bookingPartnerName
+      numberOfAdults,     // Add numberOfAdults
+      numberOfKids,       // Add numberOfKids
+    } = req.query;
 
-    let filter = {}
-    let missingParams = []
+    let filter = {};
+    let missingParams = [];
 
     // Build filter object dynamically based on provided query parameters
     if (selectedGuest && selectedGuest.trim()) {
-      filter.guestName = selectedGuest.trim()
+      filter.guestName = { $regex: new RegExp(selectedGuest.trim(), 'i') }; // Case-insensitive search
     }
 
     if (selectedOwner && selectedOwner.trim()) {
-      filter.hostOwnerName = selectedOwner.trim()
+      filter.hostOwnerName = { $regex: new RegExp(selectedOwner.trim(), 'i') }; // Case-insensitive search
     }
 
     if (selectedProperty && selectedProperty.trim()) {
-      filter.venue = selectedProperty.trim()
+      filter.venue = selectedProperty.trim();
     }
 
     if (selectedPhoneNumber && selectedPhoneNumber.trim()) {
-      filter.phoneNumber = selectedPhoneNumber.trim()
+      filter.phoneNumber = selectedPhoneNumber.trim();
     }
 
     if (selectedStatus && selectedStatus.trim()) {
-      filter.status = selectedStatus.trim()
+      filter.status = selectedStatus.trim();
     }
 
     // Category filtering
     if (selectedCategory && selectedCategory.trim()) {
-      filter.occasion = selectedCategory.trim()
+      filter.occasion = selectedCategory.trim();
     }
 
     // Filter by bookingpartnerid
     if (bookingpartnerid && bookingpartnerid.trim()) {
-      filter.bookingpartnerid = bookingpartnerid.trim()
+      filter.bookingpartnerid = bookingpartnerid.trim();
     }
 
     // Total Booking filter
     if (totalBookingValue && totalBookingOperator) {
-      const bookingValue = parseFloat(totalBookingValue) // Convert to number
+      const bookingValue = parseFloat(totalBookingValue); // Convert to number
       if (!isNaN(bookingValue)) {
         switch (totalBookingOperator) {
           case 'gte':
-            filter.totalBooking = { $gte: bookingValue } // Greater than or equal to
-            break
+            filter.totalBooking = { $gte: bookingValue }; // Greater than or equal to
+            break;
           case 'lte':
-            filter.totalBooking = { $lte: bookingValue } // Less than or equal to
-            break
+            filter.totalBooking = { $lte: bookingValue }; // Less than or equal to
+            break;
           case 'eq':
-            filter.totalBooking = { $eq: bookingValue } // Equal to
-            break
+            filter.totalBooking = { $eq: bookingValue }; // Equal to
+            break;
           default:
-            break
+            break;
         }
       }
     }
 
+    // Filter by bookingId
+    if (bookingId && bookingId.trim()) {
+      filter.bookingId = { $regex: new RegExp(bookingId.trim(), 'i') }; // Case-insensitive search
+    }
+
+    // Filter by bookingPartnerName
+    if (bookingPartnerName && bookingPartnerName.trim()) {
+      filter.bookingPartnerName = { $regex: new RegExp(bookingPartnerName.trim(), 'i') }; // Case-insensitive search
+    }
+
+    // Filter by numberOfAdults
+    if (numberOfAdults && !isNaN(parseInt(numberOfAdults))) {
+      filter.numberOfAdults = parseInt(numberOfAdults);
+    }
+
+    // Filter by numberOfKids
+    if (numberOfKids && !isNaN(parseInt(numberOfKids))) {
+      filter.numberOfKids = parseInt(numberOfKids);
+    }
+
     // Date filtering (inclusive of the date, ignores time)
     if (startDate && endDate) {
-      const start = new Date(startDate)
-      start.setUTCHours(0, 0, 0, 0) // Set time to midnight to ignore the time component
+      const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0); // Set time to midnight to ignore the time component
 
-      const end = new Date(endDate)
-      end.setUTCHours(23, 59, 59, 999) // Set time to end of day to ensure inclusivity
+      const end = new Date(endDate);
+      end.setUTCHours(23, 59, 59, 999); // Set time to end of day to ensure inclusivity
 
       // Check if either checkInDate or checkOutDate falls within the range
       filter.$or = [
@@ -698,32 +723,33 @@ router.get('/search', async (req, res) => {
           checkInDate: { $lte: end }, // Check if the checkInDate is before the endDate
           checkOutDate: { $gte: start }, // Check if the checkOutDate is after the startDate
         },
-      ]
+      ];
     } else {
-      missingParams.push('Start Date and End Date')
+      missingParams.push('Start Date and End Date');
     }
 
     // Log missing parameters
     if (missingParams.length > 0) {
-      console.log(`Missing Parameters: ${missingParams.join(', ')}`)
+      console.log(`Missing Parameters: ${missingParams.join(', ')}`);
     }
 
     // Find invoices based on the constructed filter object
-    const invoices = await Invoice.find(filter)
+    const invoices = await Invoice.find(filter);
 
     // Return the filtered invoices
     res.status(200).json({
       success: true,
       data: invoices,
-    })
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-    })
+    });
   }
-})
+});
+
 
 router.get('/owner/:hostOwnerName', async (req, res) => {
   try {
